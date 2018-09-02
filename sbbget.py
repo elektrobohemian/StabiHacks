@@ -181,7 +181,7 @@ if __name__ == "__main__":
     metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
     tiffDownloadLink="http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
 
-    log_file_name = 'ppn_log.txt'
+    log_file_name = 'ppn_log.log'
 
     ppns = []
     dimensions = []
