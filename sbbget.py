@@ -24,21 +24,25 @@ from datetime import datetime
 
 
 def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
-    currentDownloadURL=metaDataDownloadURLPrefix+currentPPN
+    # static URL pattern for Stabi's digitized collection downloads
+    metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
+    tiffDownloadLink = "http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
 
+    # download the METS/MODS file first in order to find the associated documents
+    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
     # todo: error handling
     metsModsPath= metsModsDownloadPath+"/"+currentPPN+".xml"
     urllib.request.urlretrieve(currentDownloadURL,metsModsPath)
 
     # STANDARD file download settings
     retrievalScope=['TIFF','FULLTEXT']
-    # per Schalter steuern, default: FULLTEXT und PRESENTATION
+    # TODO: per Schalter steuern, default: FULLTEXT und PRESENTATION
     # <mets:fileGrp USE="THUMBS"
     # <mets:fileGrp USE="DEFAULT">
     # <mets:fileGrp USE="FULLTEXT">
     # <mets:fileGrp USE="PRESENTATION">
-    # download der Files
 
+    # parse the METS/MODS file
     tree = ET.parse(metsModsPath)
     root = tree.getroot()
 
@@ -49,9 +53,6 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             #print(fptr.tag,fptr.attrib)
             fileID2physID[fptr.attrib['FILEID']]=div.attrib['ID']
             #print(fptr.attrib['FILEID'],fileID2physID[fptr.attrib['FILEID']])
-
-
-    #raise SystemExit
 
     # a list of downloaded TIFF files
     alreadyDownloadedPhysID=[]
@@ -93,7 +94,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                     except urllib.error.URLError:
                         print("Error downloading " + currentPPN+".tif")
 
-                if currentUse in retrievalScope :
+                if currentUse in retrievalScope : # e.g., TIFF or FULLTEXT
                     for fLocat in fileNode.iter('{http://www.loc.gov/METS/}FLocat'):
                         if (fLocat.attrib['LOCTYPE'] == 'URL'):
                             if verbose:
@@ -137,7 +138,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                         w=int(el.attrib['WIDTH'])
                         if h > 150 and w > 150:
                             if verbose:
-                                print("Saving Image")
+                                print("Saving image to: "+saveDir + key.split("_")[1] + "_" +illuID + illustrationExportFileType)
                             entry = {"WIDTH" : w, "HEIGHT": h, "LABEL" : key.split("_")[1]}
                             dimensions.append(entry)
                             hpos=int(el.attrib['HPOS'])
@@ -154,77 +155,86 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                             img2.save(saveDir + key.split("_")[1] + "_" +illuID + illustrationExportFileType)
                         else:
                             if verbose:
-                                print("Image is too small: Not considering")
+                                print("Image is too small: processing skipped.")
 
     if deleteTempFolders:
         shutil.rmtree('sbb/download_temp', ignore_errors=True)
         if not os.path.exists("sbb/download_temp"):
             if verbose:
                 print("Deleted temporary folders.")
-    print("Done.")
+
 
 if __name__ == "__main__":
     downloadPathPrefix="."
+    # in case the PPN list contains PPNs without "PPN" prefix, it will be added
     addPPNPrefix=True
     extractIllustrations=True
-    illustrationExportFileType= ".tif"
-
+    # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
+    illustrationExportFileType= ".jpg"
     # deleted temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
     skipDownloads=False
+    # enables verbose output during processing
     verbose=True
     # determines which ALTO elements should be extracted
     consideredAltoElements=['{http://www.loc.gov/standards/alto/ns-v2#}Illustration']#,'{http://www.loc.gov/standards/alto/ns-v2#}GraphicalElement']
 
-    # static URL pattern for Stabi's digitized collection downloads
-    metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
-    tiffDownloadLink="http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
-
-    log_file_name = 'ppn_log.log'
+    # path to the log file which also stores information if the script run has been canceled and it should be resumed (in case of a large amount of downloads)
+    # if you want to force new downloads, just delete this file
+    logFileName = 'ppn_log.log'
 
     ppns = []
     dimensions = []
-    with open('OCR-PPN-Liste.txt') as f:
-        lines = f.readlines()
-        lines.pop(0)
-        for line in lines:
-            line_split = line.split(' ')
-            ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
-            ppns.append(ppn_cleaned)
 
-        print("Number of processed documents: " + str(len(ppns)))
+    # a PPN list with fulltexts
+    # with open('OCR-PPN-Liste.txt') as f:
+    #     lines = f.readlines()
+    #     lines.pop(0)
+    #     for line in lines:
+    #         line_split = line.split(' ')
+    #         ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
+    #         ppns.append(ppn_cleaned)
+    #
+    #     f.close()
+
+    # a PPN list containing the Wegehaupt Digital collection
+    with open("wegehaupt_digital.txt") as f:
+        lines = f.readlines()
+        for line in lines:
+            ppns.append(line.replace("\n",""))
         f.close()
 
-
+    print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
     end = len(ppns)
-    if os.path.isfile(log_file_name):
-        with open(log_file_name, 'r') as log_file:
+    # in case of a prior abort of the script, try to resume from the last known state
+    if os.path.isfile(logFileName):
+        with open(logFileName, 'r') as log_file:
             log_entries = log_file.readlines()
             start = len(log_entries)
     else:
-        with open(log_file_name, 'w') as log_file:
+        with open(logFileName, 'w') as log_file:
             pass
 
-    # daz remove
-    ppns=["3308099233"]#,"609921959"]
-    start = 0
-    end = len(ppns)
-    # daz end
-    for i in range(start,end):
+    # demo stuff - please remove if you want to work on real data
+    #ppns=["3308099233"]#,"609921959"]
+    #end = len(ppns)
+    # end demo
 
+    summaryString=""
+
+    for i in range(start,end):
         sbbPrefix = "sbbget_downloads"
         downloadPathPrefix="download_temp"
-        savePathPrefix="saved_images"
+        savePathPrefix="extracted_images"
         ppn = ppns[i]
         current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
-        with open(log_file_name, 'a') as log_file:
+        with open(logFileName, 'a') as log_file:
             log_file.write(current_time + " " + ppn + " (Number: %d)" % (i) + "\n")
 
         if addPPNPrefix:
             ppn="PPN"+ppn
-            print(ppn)
 
         if not os.path.exists(sbbPrefix+"/"):
             if verbose:
@@ -234,11 +244,14 @@ if __name__ == "__main__":
         downloadPathPrefix= sbbPrefix + "/" + downloadPathPrefix
         savePathPrefix = sbbPrefix + "/" + savePathPrefix
 
+        summaryString = "\nSUMMARY"
         if not os.path.exists(downloadPathPrefix+"/"):
             if verbose:
                 print("Creating "+downloadPathPrefix+"/")
             os.mkdir(downloadPathPrefix+"/")
         downloadPathPrefix=downloadPathPrefix+"/"+ppn
+
+        summaryString += "\n\tDownloads (fulltexts, original digitizations etc.) were, e.g., stored at: "+downloadPathPrefix
         if not os.path.exists(downloadPathPrefix+"/"):
             if verbose:
                 print("Creating "+downloadPathPrefix+"/")
@@ -253,11 +266,15 @@ if __name__ == "__main__":
             if verbose:
                 print("Creating "+savePathPrefix+"/")
             os.mkdir(savePathPrefix+"/")
+        summaryString += "\n\tExtracted images were, e.g., stored at: " + savePathPrefix
 
         metsModsDownloadPath=downloadPathPrefix + "/__metsmods/"
         if not os.path.exists(metsModsDownloadPath):
             if verbose:
                 print("Creating " + metsModsDownloadPath)
             os.mkdir(metsModsDownloadPath)
+        summaryString += "\n\tMETS/MODS files were, e.g., stored at: " + metsModsDownloadPath
 
         downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+    print(summaryString+"\n")
+    print("Done.")
