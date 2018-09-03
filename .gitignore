@@ -106,3 +106,4 @@ venv.bak/
 sbbget_downloads/
 
 *.log
+*.DS_Store 
