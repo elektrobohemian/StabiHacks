@@ -59,6 +59,9 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # a dict of paths to ALTO fulltexts (id->download dir)
     altoPaths=dict()
 
+    # a list of downloaded image paths in order to remove them if needed (controled by deleteMasterTIFFs)
+    masterTIFFpaths=[]
+
     # we are only interested in fileGrp nodes below fileSec...
     for fileSec in root.iter('{http://www.loc.gov/METS/}fileSec'):
         for child in fileSec.iter('{http://www.loc.gov/METS/}fileGrp'):
@@ -90,6 +93,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                                 print("Downloading to " + tiffDir)
                             if not skipDownloads:
                                 urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',fileID2physID[id]),tiffDir+"/"+currentPPN+".tif")
+                                masterTIFFpaths.append(tiffDir+"/"+currentPPN+".tif")
                             alreadyDownloadedPhysID.append(fileID2physID[id])
                     except urllib.error.URLError:
                         print("Error downloading " + currentPPN+".tif")
@@ -156,6 +160,9 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                         else:
                             if verbose:
                                 print("Image is too small: processing skipped.")
+    if deleteMasterTIFFs:
+        for masterTiff in masterTIFFpaths:
+            os.remove(masterTiff)
 
     if deleteTempFolders:
         shutil.rmtree('sbb/download_temp', ignore_errors=True)
@@ -171,8 +178,10 @@ if __name__ == "__main__":
     extractIllustrations=True
     # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
     illustrationExportFileType= ".jpg"
-    # deleted temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
+    # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
+    # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
+    deleteMasterTIFFs=True
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
     skipDownloads=False
     # enables verbose output during processing
@@ -187,6 +196,13 @@ if __name__ == "__main__":
     ppns = []
     dimensions = []
 
+    # a PPN list for testing purposes
+    # with open("test_ppn_list.txt") as f:
+    #     lines = f.readlines()
+    #     for line in lines:
+    #         ppns.append(line.replace("\n", ""))
+    #     f.close()
+
     # a PPN list with fulltexts
     # with open('OCR-PPN-Liste.txt') as f:
     #     lines = f.readlines()
@@ -200,10 +216,10 @@ if __name__ == "__main__":
 
     # a PPN list containing the Wegehaupt Digital collection
     with open("wegehaupt_digital.txt") as f:
-        lines = f.readlines()
-        for line in lines:
-            ppns.append(line.replace("\n",""))
-        f.close()
+         lines = f.readlines()
+         for line in lines:
+             ppns.append(line.replace("\n",""))
+         f.close()
 
     print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
