@@ -32,6 +32,10 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
     # todo: error handling
     metsModsPath= metsModsDownloadPath+"/"+currentPPN+".xml"
+    if not runningFromWithinStabi:
+        proxy = urllib.request.ProxyHandler({})
+        opener = urllib.request.build_opener(proxy)
+        urllib.request.install_opener(opener)
     urllib.request.urlretrieve(currentDownloadURL,metsModsPath)
 
     # STANDARD file download settings
@@ -175,6 +179,7 @@ if __name__ == "__main__":
     downloadPathPrefix="."
     # in case the PPN list contains PPNs without "PPN" prefix, it will be added
     addPPNPrefix=True
+    # should illustration, found by the OCR, be extracted?
     extractIllustrations=True
     # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
     illustrationExportFileType= ".jpg"
@@ -188,6 +193,8 @@ if __name__ == "__main__":
     verbose=True
     # determines which ALTO elements should be extracted
     consideredAltoElements=['{http://www.loc.gov/standards/alto/ns-v2#}Illustration']#,'{http://www.loc.gov/standards/alto/ns-v2#}GraphicalElement']
+    # Berlin State Library internal setting
+    runningFromWithinStabi=False
 
     # path to the log file which also stores information if the script run has been canceled and it should be resumed (in case of a large amount of downloads)
     # if you want to force new downloads, just delete this file
