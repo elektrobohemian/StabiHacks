@@ -3,7 +3,7 @@
 Various utilities to deal with metadata and content provided by the Berlin State Library/Staatsbibliothek zu Berlin
 
 ## SBBget
-* a [Python script](sbbget.py) that is capable of downloading digitized media, the associated metadata, and its fulltext from Berlin State Library's digitized collections. 
+* a [Python script](sbbget/sbbget.py) that is capable of downloading digitized media, the associated metadata, and its fulltext from Berlin State Library's digitized collections. 
 * it also extracts images that have been detected by the OCR.
 * its logic is based on the more or less unique PPN identifier used at the library.
 * two PPN lists are shipped for demonstration purposes. more can be obtained at the Berlin State Library or the creator of the script.
