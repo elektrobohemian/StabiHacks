@@ -199,6 +199,8 @@ if __name__ == "__main__":
     # path to the log file which also stores information if the script run has been canceled and it should be resumed (in case of a large amount of downloads)
     # if you want to force new downloads, just delete this file
     logFileName = 'ppn_log.log'
+    # error log file name
+    errorLogFileName="sbbget_error.log"
 
     ppns = []
     dimensions = []
@@ -246,6 +248,8 @@ if __name__ == "__main__":
     # end demo
 
     summaryString=""
+
+    errorFile = open(errorLogFileName, "w")
 
     for i in range(start,end):
         sbbPrefix = "sbbget_downloads"
@@ -298,6 +302,14 @@ if __name__ == "__main__":
             os.mkdir(metsModsDownloadPath)
         summaryString += "\n\tMETS/MODS files were, e.g., stored at: " + metsModsDownloadPath
 
-        downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+        try:
+            downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            errorFile.write(ppn+"\t"+message+"\n")
+
+    errorFile.close()
+
     print(summaryString+"\n")
     print("Done.")
