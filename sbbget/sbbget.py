@@ -32,7 +32,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
     # todo: error handling
     metsModsPath= metsModsDownloadPath+"/"+currentPPN+".xml"
-    if not runningFromWithinStabi:
+    if runningFromWithinStabi:
         proxy = urllib.request.ProxyHandler({})
         opener = urllib.request.build_opener(proxy)
         urllib.request.install_opener(opener)
