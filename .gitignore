@@ -104,6 +104,10 @@ venv.bak/
 .mypy_cache/
 
 sbbget_downloads*/
+oai-analyzer_downloads/
 
 *.log
 *.DS_Store 
+*.pickle
+*analysis/
+
