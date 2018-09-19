@@ -20,6 +20,7 @@ import os
 import pickle
 import urllib.request
 import xml.etree.ElementTree as ET
+import sqlite3
 # OAI-PMH client library
 from sickle import Sickle
 
@@ -55,7 +56,10 @@ ambiguousPPNFileName = analysisPrefix + "ppn_ambiguous_list.csv"
 keepMETSMODS=False
 # file path for metadata record pickle
 metadataRecordPicklePath = "save_120k_dc_all.pickle"
-
+# DB-related settings (only interpreted if useSQLDB is True
+useSQLDB=True
+# path to the DB file
+sqlDBPath=analysisPrefix+"oai-analyzer.db"
 
 # do not change the following values
 # XML namespace of MODS
@@ -405,12 +409,11 @@ if __name__ == "__main__":
 
 
     forceOverridePossible=False
-    #if forceOverride:
-    if os.path.exists(analysisPrefix + "analyticaldf.csv"):
+    if os.path.exists(analysisPrefix + "analyticaldf.xlsx"):
         forceOverridePossible=True
 
-    #if forceOverride and forceOverridePossible:
-    if True:
+    if forceOverride and forceOverridePossible:
+    #if True:
         printLog("Processing METS/MODS documents.")
         resultDFs=[]
         processedDocs=0
@@ -418,7 +421,7 @@ if __name__ == "__main__":
         for ppn in ppns:
             currentMETSMODS = None
             processedDocs+=1
-            if processedDocs % 1000 == 0:
+            if processedDocs % 100 == 0:
                 printLog("\tProcessed %d of %d METS/MODS documents." % (processedDocs, maxDocs))
             try:
                 # debug
@@ -436,15 +439,44 @@ if __name__ == "__main__":
                 #raise (SystemExit)
                 if not keepMETSMODS:
                     os.remove(currentMETSMODS)
+
         analyticalDF=pd.concat(resultDFs,sort=False)
         # store the results permanently
         analyticalDF.to_csv(analysisPrefix + "analyticaldf.csv",sep=';',index=False)
-        analyticalDF.to_excel(analysisPrefix + "analyticaldf.xlsx", sep=';', index=False)
-    else:
-        printLog("Read METS/MODS analysis table from: "+analysisPrefix + "analyticaldf.csv")
-        analyticalDF=pd.read_csv(analysisPrefix + "analyticaldf.csv",sep=';')
+        analyticalDF.to_excel(analysisPrefix + "analyticaldf.xlsx", index=False)
 
-    print(analyticalDF.describe())
+        if useSQLDB:
+            conn=sqlite3.connect(sqlDBPath)
+            analyticalDF.to_sql("oai_results",conn,if_exists='replace')
+    else:
+        printLog("Read METS/MODS analysis table from: "+analysisPrefix + "analyticaldf.xlsx")
+        analyticalDF=pd.read_excel(analysisPrefix + "analyticaldf.xlsx")
+
+    print(analyticalDF.columns)
+
+    ocrPPNs=[]
+    # read in OCR'ed PPNs
+    with open('../_datasets/ocr_ppn_list.txt') as f:
+        lines = f.readlines()
+        lines.pop(0)
+        for line in lines:
+            line_split = line.split(' ')
+            ppn_cleaned = "PPN"+line_split[len(line_split) - 1].rstrip()
+            ocrPPNs.append(ppn_cleaned)
+    f.close()
+
+    # create a dataframe from the OCR PPN list
+    ocrDF=pd.DataFrame({"ppn":ocrPPNs})
+
+    # join the two dataframes to discover all documents that got OCR'ed
+    joinedDF=pd.merge(analyticalDF,ocrDF,on='ppn')
+
+    printLog("Rows in analyticalDF: %i"%len(analyticalDF.index))
+    printLog("Rows in ocrDF: %i" % len(ocrDF.index))
+    printLog("Rows in joinedDF: %i" % len(joinedDF.index))
+
+    joinedDF.to_excel(analysisPrefix + "joinedDF.xlsx", index=False)
+
     # finally, clean up
     errorFile.close()
     print("Done.")
