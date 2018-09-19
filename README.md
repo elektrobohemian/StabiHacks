@@ -12,5 +12,8 @@ Various utilities to deal with metadata and content provided by the Berlin State
     * extracted images are stored at: sbbget_downloads/extracted_images/<PPN>
     * METS/MODS files are stored at: sbbget_downloads/download_temp/<PPN>/__metsmods/
 
+## OAI-Analyzer
+* [Python script](oai-analyzer/oai-analyzer.py) that downloads METS/MODS files via OAI-PMH and analyzes them
+* the results of the analyses are saved locally for further processing in various formats, e.g. Excel, CSV, or sqlite
 
 
