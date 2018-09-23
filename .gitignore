@@ -105,6 +105,7 @@ venv.bak/
 
 sbbget_downloads*/
 oai-analyzer_downloads*/
+fulltext_downloads*/
 analysis*/
 
 *.log

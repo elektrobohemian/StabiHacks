@@ -13,7 +13,18 @@ Various utilities to deal with metadata and content provided by the Berlin State
     * METS/MODS files are stored at: sbbget_downloads/download_temp/<PPN>/__metsmods/
 
 ## OAI-Analyzer
-* [Python script](oai-analyzer/oai-analyzer.py) that downloads METS/MODS files via OAI-PMH and analyzes them
+* a [Python script](oai-analyzer/oai-analyzer.py) that downloads METS/MODS files via OAI-PMH and analyzes them
 * the results of the analyses are saved locally for further processing in various formats, e.g. Excel, CSV, or sqlite
 
+## Fulltext Statistics
+* a [Python script](fulltext-tools/fulltext_statistics.py) that retrieves all fulltexts from a SBBget created download directory and converts all files to raw text files
+* the script is based on [NLTK](http://www.nltk.org) which needs additional installation steps, i.e.:
+    * install NLTK in your Python environment
+    * when running the script, Python will ask you to install additional NLTK packages, the easiest way is to open a Python interpreter
+    and run to launch NLTK's graphical installer:
+    ```
+    import nltk
+    nltk.download()
+    ```
+    * further information can be found an [online book](http://www.nltk.org/book) that also gives an introduction into natural language processing
 

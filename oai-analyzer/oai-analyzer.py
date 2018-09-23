@@ -202,7 +202,7 @@ def processMETSMODS(currentPPN, metsModsPath):
     # stores result dicts created by various parsing function (see below)
     resultDicts=[]
     # master dictionary, later used for the creation of a dataframe
-    masterDict={'publisher':"",'place':"",'date':"",'title':"",'subTitle':"",'language':"",'aut':"",'rcp':"",'fnd':"",'access':""}
+    masterDict={'publisher':"",'place':"",'date':"",'title':"",'subTitle':"",'language':"",'aut':"",'rcp':"",'fnd':"",'access':"",'altoPaths':""}
     # find all mods:mods nodes
     for modsNode in root.iter(modsNamespace + 'mods'):
         for child in modsNode:
@@ -233,6 +233,21 @@ def processMETSMODS(currentPPN, metsModsPath):
                         resultDicts.append(r)
         # we are only interested in the first occuring mods:mods node
         break
+
+    # get all ALTO file references
+    altoHrefs=[]
+    for fileSec in root.iter('{http://www.loc.gov/METS/}fileSec'):
+        for child in fileSec.iter('{http://www.loc.gov/METS/}fileGrp'):
+            currentUse=child.attrib['USE']
+            for fileNode in child.iter('{http://www.loc.gov/METS/}file'):
+                if currentUse == 'FULLTEXT':
+                    for fLocat in fileNode.iter('{http://www.loc.gov/METS/}FLocat'):
+                        if (fLocat.attrib['LOCTYPE'] == 'URL'):
+                            href = fLocat.attrib['{http://www.w3.org/1999/xlink}href']
+                            altoHrefs.append(href)
+    r["altoPaths"]=";".join(altoHrefs)
+    resultDicts.append(r)
+
     # copy results to the master dictionary
     for result in resultDicts:
         for key in result:
@@ -421,8 +436,11 @@ if __name__ == "__main__":
         for ppn in ppns:
             currentMETSMODS = None
             processedDocs+=1
-            if processedDocs % 100 == 0:
+            if processedDocs % 1000 == 0:
                 printLog("\tProcessed %d of %d METS/MODS documents." % (processedDocs, maxDocs))
+                # debug
+                #tempDF=pd.concat(resultDFs, sort=False)
+                #tempDF.to_excel(analysisPrefix + "analyticaldf_TEMP.xlsx", index=False)
             try:
                 # debug
                 #ppn="PPN74616453X"
