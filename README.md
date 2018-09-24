@@ -18,6 +18,7 @@ Various utilities to deal with metadata and content provided by the Berlin State
 
 ## Fulltext Statistics
 * a [Python script](fulltext-tools/fulltext_statistics.py) that retrieves all fulltexts from a SBBget created download directory and converts all files to raw text files
+* alternatively the script can operate on the result file created by OAI-Analyzer and download ALTO files directly, from this perspective it serves as a Stabi fulltext corpus builder
 * the script is based on [NLTK](http://www.nltk.org) which needs additional installation steps, i.e.:
     * install NLTK in your Python environment
     * when running the script, Python will ask you to install additional NLTK packages, the easiest way is to open a Python interpreter
