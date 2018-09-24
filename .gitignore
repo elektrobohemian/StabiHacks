@@ -108,5 +108,7 @@ oai-analyzer_downloads*/
 fulltext_downloads*/
 analysis*/
 
+*.pickle
+
 *.log
 *.DS_Store 
