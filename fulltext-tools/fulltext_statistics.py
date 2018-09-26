@@ -110,7 +110,7 @@ def parseALTO(docPath):
         root = tree.getroot()
         xmlns = root.tag.split('}')[0].strip('{')
     except ET.ParseError:
-        printLog("\t\tParse error @ "+docPath)
+        #printLog("\t\tParse error @ "+docPath)
         return (None,PARSING_ERROR)
     if root.tag.endswith("alto"):
         for lines in tree.iterfind('.//{%s}TextLine' % xmlns):
@@ -263,34 +263,37 @@ if __name__ == "__main__":
                         message = template.format(type(ex).__name__, ex.args)
                         errorFile.write(url + "\t" + message + "\n")
 
-                    r = parseALTO(currentALTO)
+                    if os.path.exists(currentALTO):
 
-                    # remove the ALTO file after processing
-                    if not keepALTO:
-                        os.remove(currentALTO)
+                        r = parseALTO(currentALTO)
 
-                    error = r[1]
-                    if (error < 0):
-                        resultTxt = r[0]
-                        if resultTxt:
-                            #txtFilePath = file.replace(".xml", ".txt")
-                            #statFilePath = file.replace(".xml", "_stats.txt")
-                            #txtFile = open(txtFilePath, "w")
+                        # remove the ALTO file after processing
+                        if not keepALTO:
+                            os.remove(currentALTO)
 
-                            #txtFile.write(resultTxt)
-                            #txtFile.close()
+                        error = r[1]
+                        if (error < 0):
+                            resultTxt = r[0]
+                            if resultTxt:
+                                #txtFilePath = file.replace(".xml", ".txt")
+                                #statFilePath = file.replace(".xml", "_stats.txt")
+                                #txtFile = open(txtFilePath, "w")
 
-                            #creatStatisticFiles(statFilePath, resultTxt)
-                            textPerPPN += resultTxt + "\n"
-                    else:
-                        if verbose:
-                            printLog("\tParsing problem (%s): %s" % (errorCodeAsText(error), currentALTO))
-                        errorFile.write("Discarded %s.\tNo ALTO root element found OR parsing error.\n" % currentALTO)
+                                #txtFile.write(resultTxt)
+                                #txtFile.close()
 
-                    # I am alive! output
-                    if downloadedAltoFiles%1000==0:
-                        percent=float(downloadedAltoFiles)/float(countURLs)
-                        printLog("\t\tProcessed %i ALTO files (%f %%)."%(downloadedAltoFiles,percent))
+                                #creatStatisticFiles(statFilePath, resultTxt)
+                                textPerPPN += resultTxt + "\n"
+                        else:
+                            if verbose:
+                                printLog("\tParsing problem (%s): %s" % (errorCodeAsText(error), currentALTO))
+                            errorFile.write("Discarded %s.\tNo ALTO root element found OR parsing error.\n" % currentALTO)
+
+                        # I am alive! output
+                        # BUG: percentage is not correct -> mixes files with URLs, downloadedAltoFiles works on files, countURLs on URLS!
+                        if downloadedAltoFiles%10000==0:
+                            percent=(float(downloadedAltoFiles)/float(countURLs))*100
+                            printLog("\t\tProcessed %i ALTO files (%f %%)."%(downloadedAltoFiles,percent))
                 fulltextPath=tempDownloadPrefix + ppn + "_fulltext.txt"
                 txtFile = open(fulltextPath, "w")
                 txtFile.write(textPerPPN)
