@@ -22,6 +22,8 @@ from PIL import Image
 from time import gmtime, strftime
 from datetime import datetime
 
+import requests
+
 
 def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # static URL pattern for Stabi's digitized collection downloads
@@ -36,7 +38,14 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
         proxy = urllib.request.ProxyHandler({})
         opener = urllib.request.build_opener(proxy)
         urllib.request.install_opener(opener)
-    urllib.request.urlretrieve(currentDownloadURL,metsModsPath)
+
+    if not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
+        urllib.request.urlretrieve(currentDownloadURL,metsModsPath)
+    # daz: TODO JPG-Wandlung der Vollseiten-TIFFs automatisieren und dokumentieren
+    else:
+        with open(metsModsPath, 'wb') as f:
+            resp = requests.get(currentDownloadURL, verify=False)
+            f.write(resp.content)
 
     # STANDARD file download settings
     retrievalScope=['TIFF','FULLTEXT']
@@ -96,8 +105,17 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                             if verbose:
                                 print("Downloading to " + tiffDir)
                             if not skipDownloads:
-                                urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',fileID2physID[id]),tiffDir+"/"+currentPPN+".tif")
+                                # TODO  JPG-Wandlung der Vollseiten-TIFFs automatisieren und dokumentieren
+                                if not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
+                                    urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',fileID2physID[id]),tiffDir+"/"+currentPPN+".tif")
+                                else:
+                                    with open(tiffDir+"/"+currentPPN+".tif", 'wb') as f:
+                                         resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',fileID2physID[id]), verify=False)
+                                         f.write(resp.content)
                                 masterTIFFpaths.append(tiffDir+"/"+currentPPN+".tif")
+                                # open the freshly download TIFF and convert it to the illustration export file format
+                                img = Image.open(tiffDir + "/" + currentPPN + ".tif")
+                                img.save(tiffDir + "/" + currentPPN + illustrationExportFileType)
                             alreadyDownloadedPhysID.append(fileID2physID[id])
                     except urllib.error.URLError:
                         print("Error downloading " + currentPPN+".tif")
@@ -116,7 +134,12 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                                 print("\tSaving to: " + downloadDir + "/" + outputPath)
                             try:
                                 if not skipDownloads:
-                                    urllib.request.urlretrieve(href, downloadDir+"/"+outputPath)
+                                    if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
+                                        with open(downloadDir + "/" + outputPath, 'wb') as f:
+                                            resp = requests.get(href, verify=False)
+                                            f.write(resp.content)
+                                    else:
+                                        urllib.request.urlretrieve(href, downloadDir+"/"+outputPath)
                                 if currentUse=='FULLTEXT':
                                     altoPaths[id]=[downloadDir,outputPath]
                             except urllib.error.URLError:
@@ -193,6 +216,8 @@ if __name__ == "__main__":
     verbose=True
     # determines which ALTO elements should be extracted
     consideredAltoElements=['{http://www.loc.gov/standards/alto/ns-v2#}Illustration']#,'{http://www.loc.gov/standards/alto/ns-v2#}GraphicalElement']
+    # setting this variable to true will disable SSL certificate verification - USE AT YOUR OWN RISK!
+    allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=False
     # Berlin State Library internal setting
     runningFromWithinStabi=False
 
@@ -205,30 +230,36 @@ if __name__ == "__main__":
     ppns = []
     dimensions = []
 
-    # a PPN list for testing purposes
-    # with open("test_ppn_list.txt") as f:
-    #     lines = f.readlines()
-    #     for line in lines:
-    #         ppns.append(line.replace("\n", ""))
-    #     f.close()
+
+    if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
+        print("ATTENTION! SSL certificate verification is disabled. Do not use in production.")
+
+    startTime = str(datetime.now())
+
+    # a PPN list for testing purposes (some with OCR)
+    with open("test_ppn_list.txt") as f:
+         lines = f.readlines()
+         for line in lines:
+            ppns.append(line.replace("\n", ""))
+         f.close()
 
     # a PPN list with fulltexts
     # with open('OCR-PPN-Liste.txt') as f:
-    #     lines = f.readlines()
-    #     lines.pop(0)
-    #     for line in lines:
-    #         line_split = line.split(' ')
-    #         ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
-    #         ppns.append(ppn_cleaned)
+    #      lines = f.readlines()
+    #      lines.pop(0)
+    #      for line in lines:
+    #          line_split = line.split(' ')
+    #          ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
+    #          ppns.append(ppn_cleaned)
     #
-    #     f.close()
+    #      f.close()
 
     # a PPN list containing the Wegehaupt Digital collection
-    with open("wegehaupt_digital.txt") as f:
-         lines = f.readlines()
-         for line in lines:
-             ppns.append(line.replace("\n",""))
-         f.close()
+    # with open("wegehaupt_digital.txt") as f:
+    #      lines = f.readlines()
+    #      for line in lines:
+    #          ppns.append(line.replace("\n",""))
+    #      f.close()
 
     print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
@@ -307,9 +338,16 @@ if __name__ == "__main__":
         except Exception as ex:
             template = "An exception of type {0} occurred. Arguments: {1!r}"
             message = template.format(type(ex).__name__, ex.args)
-            errorFile.write(ppn+"\t"+message+"\n")
+            errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + message + "\t" + downloadPathPrefix + "\t" + metsModsDownloadPath + "\n")
 
     errorFile.close()
 
-    print(summaryString+"\n")
+    endTime = str(datetime.now())
+
+    print(summaryString + "\n")
+    # daz new
+    print("Started at:\t%s\nEnded at:\t%s" % (startTime, endTime))
+    if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
+        print("Run without SSL certificate verification.")
+
     print("Done.")
