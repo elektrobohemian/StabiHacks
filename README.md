@@ -32,9 +32,11 @@ Various utilities to deal with metadata and content provided by the Berlin State
 ## Pica Plus
 
 * a [Python script](pica_plus/processPicaPlus.py) that parses files in the Pica+ format as provided by the [GBV](https://www.gbv.de)
-* documentation is only available in German here:
-    * the script lets you choose interesting fields (as stored in the _fieldsOfInterest_ list) and will output the contained data
-    * records will be separated by a *NEW_RECORD* string
+* the script lets you choose interesting fields (as stored in the _fieldsOfInterest_ list) and will output the contained data
+* records will be separated by a *NEW_RECORD* string
+
+
+* documentation of the Pica Plus format is only available in German here:
     * [general overview](https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/inhalt.shtml)
     * [list of fields](https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/pica3.pdf)
 
