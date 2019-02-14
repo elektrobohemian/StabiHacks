@@ -23,6 +23,7 @@ from time import gmtime, strftime
 from datetime import datetime
 
 import requests
+import tarfile as TAR
 
 
 def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
@@ -148,6 +149,12 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # extract illustrations found in ALTO files
     #illuID = 0
     if extractIllustrations:
+        # create a .tar file for the extracted illustrations
+        tarBallPath = saveDir + currentPPN + ".tar"
+        tarBall = None
+        if createTarBallOfExtractedIllustrations:
+            tarBall = TAR.open(tarBallPath, "w")
+
         for key in altoPaths:
             tiffDir=altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+altoPaths[key][1].replace(".","_")+"/"
             tiffDir="."+tiffDir[1:-1]
@@ -159,6 +166,10 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                 print("Processing ALTO XML in: "+altoPaths[key][0]+"/"+altoPaths[key][1])
             tree = ET.parse(altoPaths[key][0]+"/"+altoPaths[key][1])
             root = tree.getroot()
+
+
+
+
             for e in root.findall('.//{http://www.loc.gov/standards/alto/ns-v2#}PrintSpace'):
                 for el in e:
                     if el.tag in consideredAltoElements:
@@ -183,10 +194,18 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                             # (left, upper, right, lower)-tuple.
                             img2 = img.crop((hpos, vpos, hpos+w, vpos+h))
 
-                            img2.save(saveDir + key.split("_")[1] + "_" +illuID + illustrationExportFileType)
+                            extractedIllustrationPath=saveDir + key.split("_")[1] + "_" +illuID + illustrationExportFileType
+                            img2.save(extractedIllustrationPath)
+                            if createTarBallOfExtractedIllustrations:
+                                tarBall.add(extractedIllustrationPath)
+                                os.remove(extractedIllustrationPath)
+
                         else:
                             if verbose:
                                 print("Image is too small: processing skipped.")
+        if createTarBallOfExtractedIllustrations:
+            tarBall.close()
+
     if deleteMasterTIFFs:
         for masterTiff in masterTIFFpaths:
             os.remove(masterTiff)
@@ -206,6 +225,10 @@ if __name__ == "__main__":
     extractIllustrations=True
     # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
     illustrationExportFileType= ".jpg"
+    # (recommended setting) create .tar files from the extracted illustrations and delete extracted illustrations afterwards
+    # facilitating distribution as a much fewer files will be created. however, this will slow down processing because of
+    # the packing overhead.
+    createTarBallOfExtractedIllustrations=True
     # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
     # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
