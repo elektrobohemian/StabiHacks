@@ -31,7 +31,8 @@ sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
 runningFromWithinStabi = False
 # analysis path prefix
 analysisPrefix = "analysis/"
-# if set to onlineMode, the tool will not try to use local files, instead it will check for an Excel file stored at oaiAnalyzerResultFile and download ALTO files
+# if set to onlineMode, the tool will not try to use local files, instead it will check for an Excel file stored at
+# oaiAnalyzerResultFile (created by oai-analyzer.py) and download ALTO files
 onlineMode=True
 oaiAnalyzerResultFile="../_datasets/analyticaldf.xlsx"
 # True if downloaded ALTO documents have to be kept after processing

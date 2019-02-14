@@ -2,6 +2,10 @@
 
 Various utilities to deal with metadata and content provided by the Berlin State Library/Staatsbibliothek zu Berlin
 
+The scripts work together as illustrated below:
+
+![general workflow between SBBget, OAI-Analyzer, and Fulltext statistics](./img/general_workflow.png)
+
 ## SBBget
 * a [Python script](sbbget/sbbget.py) that is capable of downloading digitized media, the associated metadata, and its fulltext from Berlin State Library's digitized collections. 
 * it also extracts images that have been detected by the OCR and stores them in the desired file format, e.g., JPEG
