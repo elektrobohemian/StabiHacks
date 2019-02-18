@@ -19,6 +19,7 @@ import sys
 
 # general overview of Pica + fields (in German) is available under https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/inhalt.shtml
 
+# 003@ the ID of the record (the PPN number)
 # 028A  1. Verfasser (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
 # 028B  2. Verfasser und weitere (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
 # 021A  Hauptsachtitel (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4000.pdf)
@@ -26,7 +27,27 @@ import sys
 # 033A  Ort und Verlag (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
 # 010@  Sprache (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1500.pdf)
 # 019@  Erscheinungsland (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
-fieldsOfInterest=['028A','028B','021A','021B','033A','010@','019@']
+fieldsOfInterest=['003@','028A','028B','021A','021B','033A','010@','019@']
+
+def handle021a(tokens):
+    """
+    Processes the 021A (Hauptsachtitel) field. Currently, only subfield a and d are supported.
+    For details (in German), see: https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4000.pdf
+    :param tokens: a list of tokens of the field 021A
+    :return:
+    """
+    hauptsachtitel=""
+    zusaetze=""
+    for token in tokens:
+        if token.startswith("a"):
+            hauptsachtitel=token[1:].replace("@","").strip()
+        elif token.startswith("d"):
+            z=token[1:].replace("@","").split(";")
+            z = list(map(str.strip, z))
+            zusaetze=" ".join(z).strip()
+
+
+    return(hauptsachtitel+" "+zusaetze)
 
 # choose you file to be processed here
 with open("./analysis/test_large.pp", "rb") as f:
@@ -40,6 +61,7 @@ with open("./analysis/test_large.pp", "rb") as f:
     currentLine = ""
     # encoding is indicated in 001U as "0utf8"
 
+    ppn = ""
     while byte != b"":
         # Do stuff with byte.
 
@@ -53,6 +75,7 @@ with open("./analysis/test_large.pp", "rb") as f:
             bytestream = last + lastUnicodeMarker + byte
             currentLine = currentLine[:-1] + bytestream.decode('utf-8', "replace")
 
+
         # if we find a \r\n, we have a new line
         if byte == b'\n' and last == b'\r':
             #print(currentLine)
@@ -65,9 +88,17 @@ with open("./analysis/test_large.pp", "rb") as f:
             #TODO remove @ in certain sub-fields because it is used as a sorting indicator in PICA+
             #['028A', 'dPaul\x1faCelan\x1f9131811533\x1fdPaul\x1faCelan\x1fE1920\x1fF1970\x1f0gnd/118519859']
 
+
             if tokens[0] in fieldsOfInterest:
                 subtokens=tokens[1].split('\x1f')
-                print(tokens[0]+":\t"+str(subtokens))
+                if tokens[0]=="003@":
+                    # override the last seen PPN in case we have to deal with a new record
+                    ppn=subtokens[0]
+                elif tokens[0]=="021A":
+                    r=handle021a(subtokens)
+                    print(ppn + "\t" +tokens[0] + "\t" + r)
+                else:
+                    print(ppn + "\t" +tokens[0]+"\t"+str(subtokens))
             currentLine = ""
 
         # if we find a space followed by \xlf, we have found a field separator
