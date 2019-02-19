@@ -112,3 +112,6 @@ analysis*/
 
 *.log
 *.DS_Store 
+
+# jetbrains project files
+.idea/*
