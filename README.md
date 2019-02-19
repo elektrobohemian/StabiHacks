@@ -39,7 +39,8 @@ The scripts work together as illustrated below:
 
 * a [Python script](pica_plus/processPicaPlus.py) that parses files in the Pica+ format as provided by the [GBV](https://www.gbv.de)
 * the script lets you choose interesting fields (as stored in the _fieldsOfInterest_ list) and will output the contained data
-* records will be separated by a *NEW_RECORD* string
+* records will be separated by a *NEW_RECORD* string on command line or by an empty line in the text format
+* output can be saved in text format, separated by the language of the record
 
 
 * documentation of the Pica Plus format is only available in German here:
