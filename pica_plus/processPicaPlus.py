@@ -20,15 +20,14 @@ from datetime import datetime
 
 # general overview of Pica + fields (in German) is available under https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/inhalt.shtml
 
-
-# 028A  1. Verfasser (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
 # 028B  2. Verfasser und weitere (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
 # 021B  Hauptsachtitel bei j-Sätzen (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4004.pdf)
 # 033A  Ort und Verlag (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
 # 019@  Erscheinungsland (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
 
 # the paths to the files to be analyzed
-picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp"""]#["./analysis/test_large.pp"]
+#picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp"""]
+picaPlusFilePaths=["./analysis/test_large.pp"]
 # the fields of interest indicate the fields that have to be extracted, please note that 003@ and 010@ must not be removed because these fields contain
 # the unique ID of the records and its language
 fieldsOfInterest=['003@','028A','028B','021A','021B','033A','010@','019@']
@@ -68,6 +67,27 @@ def handle021a(tokens):
 
 
     return(hauptsachtitel+" "+zusaetze)
+
+def handle028a(tokens):
+    """
+    Processes the 028A (1. Verfasser) field. Currently, only subfield a and d are supported.
+    For details (in German), see: https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf
+    :param tokens: a list of tokens of the field 028A
+    :return: a tuple in form of (<family name, first name>,<gnd id, if available>)
+    """
+    familyName=""
+    firstName=""
+    gnd=""
+    for token in tokens:
+        if token.startswith("a"):
+            familyName=token[1:].strip()+", "
+        elif token.startswith("d"):
+            firstName=token[1:].strip()
+        # GND id
+        elif token.startswith("0"):
+            gnd=token[1:].strip()
+
+    return((familyName+firstName,gnd))
 
 if __name__ == "__main__":
     startTime = str(datetime.now())
@@ -134,6 +154,10 @@ if __name__ == "__main__":
                             # 021A  Hauptsachtitel (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4000.pdf)
                             r=handle021a(subtokens)
                             outputLine=ppn + '\t' +tokens[0] + '\t' + r
+                        elif tokens[0]=="028A":
+                            # 028A  1. Verfasser (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
+                            r=handle028a(subtokens)
+                            outputLine=ppn + '\t' +tokens[0] + '\t' + r[0] + '\t' +r[1]
                         else:
                             outputLine=ppn + "\t" +tokens[0]+"\t"+str(subtokens)
 
@@ -159,6 +183,7 @@ if __name__ == "__main__":
                     language="None"
 
                 # take care of 2 byte unicode characters, toggle unicode processing mode, see above
+                # TODO handling of ß
                 if byte == b'\xcc':
                     unicodeHot = True
                     lastUnicodeMarker = byte
