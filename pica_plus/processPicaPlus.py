@@ -24,9 +24,12 @@ from datetime import datetime
 # 021B  Hauptsachtitel bei j-Sätzen (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4004.pdf)
 # 033A  Ort und Verlag (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
 # 019@  Erscheinungsland (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
+# run time for the full 2018 set
+# Started at:	2019-02-20 12:37:25.704093
+# Ended at:	2019-02-20 15:40:56.240565
 
 # the paths to the files to be analyzed
-#picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp"""]
+#picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_001_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_003_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_004_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_005_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_006_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_007_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_008_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_009_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_010_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_011_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_012_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
 picaPlusFilePaths=["./analysis/test_large.pp"]
 # the fields of interest indicate the fields that have to be extracted, please note that 003@ and 010@ must not be removed because these fields contain
 # the unique ID of the records and its language
