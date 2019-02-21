@@ -29,21 +29,24 @@ from datetime import datetime
 # Ended at:	2019-02-20 15:40:56.240565
 
 # the paths to the files to be analyzed
-#picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_001_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_003_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_004_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_005_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_006_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_007_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_008_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_009_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_010_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_011_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_012_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
-picaPlusFilePaths=["./analysis/test_large.pp"]
+picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_001_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_003_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_004_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_005_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_006_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_007_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_008_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_009_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_010_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_011_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_012_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
+#picaPlusFilePaths=["./analysis/test_large.pp"]
+
+# toggles textual output
+createTextOutput=True
+# analysis path prefix
+#analysisPrefix = "analysis/"
+analysisPrefix="""C:\david.local\cbs\\analysis\\"""
+# path to the created text file
+outputTextFilePathSuffix="out.txt"
+# a map of language to text output path and file handler
+outputTextFilePaths={"eng":[analysisPrefix+"/eng_"+outputTextFilePathSuffix,None],"ger":[analysisPrefix+"/ger_"+outputTextFilePathSuffix,None],"lat":[analysisPrefix+"/lat_"+outputTextFilePathSuffix,None],"fre":[analysisPrefix+"/fre_"+outputTextFilePathSuffix,None],"ita":[analysisPrefix+"/ita_"+outputTextFilePathSuffix,None],"None":[analysisPrefix+"/"+outputTextFilePathSuffix,None]}
+
 # the fields of interest indicate the fields that have to be extracted, please note that 003@ and 010@ must not be removed because these fields contain
 # the unique ID of the records and its language
 fieldsOfInterest=['003@','028A','028B','021A','021B','033A','010@','019@']
 # enables verbose output during processing
 verbose = True
-# toggles textual output
-createTextOutput=True
-# analysis path prefix
-analysisPrefix = "analysis/"
-# path to the created text file
-outputTextFilePathSuffix="out.txt"
-# a map of language to text output path and file handler
-outputTextFilePaths={"eng":[analysisPrefix+"/eng_"+outputTextFilePathSuffix,None],"ger":[analysisPrefix+"/ger_"+outputTextFilePathSuffix,None],"None":[analysisPrefix+"/"+outputTextFilePathSuffix,None]}
 
 def createSupplementaryDirectories():
     if not os.path.exists(analysisPrefix):
@@ -102,7 +105,11 @@ if __name__ == "__main__":
             f=open(outputTextFilePaths[language][0],"w",encoding="utf-8")
             outputTextFilePaths[language][1]=f
 
-    # choose you file to be processed here
+    # histogram of found languages
+    languageHist=dict()
+    numberOfRecords=0
+
+    # process all Pica+ files sequentially
     for picaPlusFile in picaPlusFilePaths:
         with open(picaPlusFile, "rb") as f:
             byte = f.read(1)
@@ -149,6 +156,10 @@ if __name__ == "__main__":
                         if tokens[0]=="010@":
                             # 010@  Sprache (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1500.pdf)
                             language=str(subtokens[0][1:])
+                            if not language in languageHist:
+                                languageHist[language]=1
+                            else:
+                                languageHist[language]=languageHist[language]+1
                         elif tokens[0]=="003@":
                             # 003@ the ID of the record (the PPN number)
                             # override the last seen PPN in case we have to deal with a new record
@@ -183,6 +194,7 @@ if __name__ == "__main__":
                 if byte == b'\x1d' and last == b'\n':
                     if verbose:
                         print("*NEW_RECORD*")
+                    numberOfRecords+=1
                     language="None"
 
                 # take care of 2 byte unicode characters, toggle unicode processing mode, see above
@@ -209,5 +221,12 @@ if __name__ == "__main__":
         for language in outputTextFilePaths:
             outputTextFilePaths[language][1].close()
 
+    sumOfLanguageRecords=0
+    for language in languageHist:
+        sumOfLanguageRecords+=languageHist[language]
+
     endTime = str(datetime.now())
-    print("Started at:\t%s\nEnded at:\t%s" % (startTime, endTime))
+
+    print("\nStarted at:\t%s\nEnded at:\t%s" % (startTime, endTime))
+    print("Found languages : %s" % languageHist.keys())
+    print("Language available in %i of %i records."%(sumOfLanguageRecords,numberOfRecords))
