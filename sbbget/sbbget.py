@@ -239,10 +239,14 @@ if __name__ == "__main__":
     verbose=True
     # determines which ALTO elements should be extracted
     consideredAltoElements=['{http://www.loc.gov/standards/alto/ns-v2#}Illustration']#,'{http://www.loc.gov/standards/alto/ns-v2#}GraphicalElement']
+
     # setting this variable to true will disable SSL certificate verification - USE AT YOUR OWN RISK!
     allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=False
     # Berlin State Library internal setting
     runningFromWithinStabi=False
+    # Stabi internal setup variants, may vary depending on the sub-net of the machine
+    # dev Windows: allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=True   runningFromWithinStabi=True
+    # dev Linux:   allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=False   runningFromWithinStabi=True
 
     # path to the log file which also stores information if the script run has been canceled and it should be resumed (in case of a large amount of downloads)
     # if you want to force new downloads, just delete this file
