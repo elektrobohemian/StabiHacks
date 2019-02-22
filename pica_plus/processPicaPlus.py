@@ -40,7 +40,9 @@ analysisPrefix="""C:\david.local\cbs\\analysis\\"""
 # path to the created text file
 outputTextFilePathSuffix="out.txt"
 # a map of language to text output path and file handler
-outputTextFilePaths={"eng":[analysisPrefix+"/eng_"+outputTextFilePathSuffix,None],"ger":[analysisPrefix+"/ger_"+outputTextFilePathSuffix,None],"lat":[analysisPrefix+"/lat_"+outputTextFilePathSuffix,None],"fre":[analysisPrefix+"/fre_"+outputTextFilePathSuffix,None],"ita":[analysisPrefix+"/ita_"+outputTextFilePathSuffix,None],"None":[analysisPrefix+"/"+outputTextFilePathSuffix,None]}
+outputTextFilePaths={"eng":[analysisPrefix+"/eng_"+outputTextFilePathSuffix,None],"ger":[analysisPrefix+"/ger_"+outputTextFilePathSuffix,None],"lat":[analysisPrefix+"/lat_"+outputTextFilePathSuffix,None],"fre":[analysisPrefix+"/fre_"+outputTextFilePathSuffix,None],"ita":[analysisPrefix+"/ita_"+outputTextFilePathSuffix,None],"spa":[analysisPrefix+"/spa_"+outputTextFilePathSuffix,None],"por":[analysisPrefix+"/por_"+outputTextFilePathSuffix,None],"dut":[analysisPrefix+"/dut_"+outputTextFilePathSuffix,None],"swe":[analysisPrefix+"/swe_"+outputTextFilePathSuffix,None],"dan":[analysisPrefix+"/dan_"+outputTextFilePathSuffix,None],"nor":[analysisPrefix+"/nor_"+outputTextFilePathSuffix,None],"ice":[analysisPrefix+"/ice_"+outputTextFilePathSuffix,None],"fry":[analysisPrefix+"/fry_"+outputTextFilePathSuffix,None],"None":[analysisPrefix+"/"+outputTextFilePathSuffix,None]}
+# path to the statistics file
+statisticsFilePath=analysisPrefix+"/statistics.txt"
 
 # the fields of interest indicate the fields that have to be extracted, please note that 003@ and 010@ must not be removed because these fields contain
 # the unique ID of the records and its language
@@ -230,3 +232,9 @@ if __name__ == "__main__":
     print("\nStarted at:\t%s\nEnded at:\t%s" % (startTime, endTime))
     print("Found languages : %s" % languageHist.keys())
     print("Language available in %i of %i records."%(sumOfLanguageRecords,numberOfRecords))
+
+    f = open(statisticsFilePath, "w", encoding="utf-8")
+    f.write("\nStarted at:\t%s\nEnded at:\t%s\n" % (startTime, endTime))
+    f.write("Found languages : %s\n" % languageHist.keys())
+    f.write("Language available in %i of %i records.\n"%(sumOfLanguageRecords,numberOfRecords))
+    f.close()
