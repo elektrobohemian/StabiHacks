@@ -22,8 +22,6 @@ from datetime import datetime
 
 # 028B  2. Verfasser und weitere (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
 # 021B  Hauptsachtitel bei j-Sätzen (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4004.pdf)
-# 033A  Ort und Verlag (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
-# 019@  Erscheinungsland (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
 # run time for the full 2018 set
 # Started at:	2019-02-20 12:37:25.704093
 # Ended at:	2019-02-20 15:40:56.240565
@@ -96,6 +94,38 @@ def handle028a(tokens):
             gnd=token[1:].strip()
 
     return((familyName+firstName,gnd))
+
+def handle033a(tokens):
+    """
+    Processes the 033A (Ort und Verlag) field. Currently, only subfield p and n are supported.
+    For details (in German), see: https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf
+    :param tokens: a list of tokens of the field 033A
+    :return: a tuple in form of (<publisher>,<place(s)>)
+    """
+    ort=""
+    verlag=""
+    for token in tokens:
+        if token.startswith("p"):
+            ort=token[1:].replace("@","").strip()
+        elif token.startswith("n"):
+            verlag=token[1:].replace("@","").strip()
+
+    return((verlag,ort))
+
+def handle019a(tokens):
+    """
+    Processes the 019A (Erscheinungsland) field. Currently, only subfield a is supported. Only the first country is extracted.
+    For details (in German), see:  https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
+    :param tokens: a list of tokens of the field 019A
+    :return: the first found country code
+    """
+    ort=""
+
+    for token in tokens:
+        if token.startswith("a"):
+            ort=token[1:].replace("@","").strip()
+            return(ort)
+
 
 if __name__ == "__main__":
     startTime = str(datetime.now())
@@ -178,6 +208,18 @@ if __name__ == "__main__":
                                 outputLine=ppn + '\t' +tokens[0] + '\t' + r[0] + '@' +r[1]
                             else:
                                 outputLine = ppn + '\t' + tokens[0] + '\t' + r[0]
+                        elif tokens[0]=="033A":
+                            # 033A  Ort und Verlag (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
+                            r=handle033a(subtokens)
+                            # if a GND is has been found add it to the name following after @
+                            if r[1]:
+                                outputLine=ppn + '\t' +tokens[0] + '\t' + r[0] + '@' +r[1]
+                            else:
+                                outputLine = ppn + '\t' + tokens[0] + '\t' + r[0]
+                        elif tokens[0]=="019@":
+                            # 019@  Erscheinungsland (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
+                            r=handle019a(subtokens)
+                            outputLine = ppn + '\t' + tokens[0] + '\t' + r
                         else:
                             outputLine=ppn + "\t" +tokens[0]+"\t"+str(subtokens)
 
