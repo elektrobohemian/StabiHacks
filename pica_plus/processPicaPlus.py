@@ -173,7 +173,11 @@ if __name__ == "__main__":
                         elif tokens[0]=="028A":
                             # 028A  1. Verfasser (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
                             r=handle028a(subtokens)
-                            outputLine=ppn + '\t' +tokens[0] + '\t' + r[0] + '\t' +r[1]
+                            # if a GND is has been found add it to the name following after @
+                            if r[1]:
+                                outputLine=ppn + '\t' +tokens[0] + '\t' + r[0] + '@' +r[1]
+                            else:
+                                outputLine = ppn + '\t' + tokens[0] + '\t' + r[0]
                         else:
                             outputLine=ppn + "\t" +tokens[0]+"\t"+str(subtokens)
 
