@@ -41,6 +41,11 @@ The scripts work together as illustrated below:
 * the script lets you choose interesting fields (as stored in the _fieldsOfInterest_ list) and will output the contained data
 * records will be separated by a *NEW_RECORD* string on command line or by an empty line in the text format
 * output can be saved in text format, separated by the language of the record
+* standard fields are:
+    * title
+    * author (+ optional GND ID)
+    * country of publication (only the first entry in a specific extension of the [DIN ISO 3166 format](https://www.dnb.de/SharedDocs/Downloads/DE/DNB/standardisierung/inhaltserschliessung/laenderCodesSyst.pdf?__blob=publicationFile)) 
+    * publisher and place of publication
 
 
 * documentation of the Pica Plus format is only available in German here:
