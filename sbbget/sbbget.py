@@ -31,6 +31,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
     tiffDownloadLink = "http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
     saveDir=""
+    pathToTitlePage=""
 
     # download the METS/MODS file first in order to find the associated documents
     currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
@@ -149,12 +150,14 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                                 if storeExtraTitlePageThumbnails:
                                     if isTitlePage:
                                         img.thumbnail(titlePageThumbnailSize)
-                                        img.save(downloadPathPrefix+"/" +"_TITLE_PAGE"+ illustrationExportFileType)
+                                        pathToTitlePage=downloadPathPrefix+"/" +"_TITLE_PAGE"+ illustrationExportFileType
+                                        img.save(pathToTitlePage)
                                     else:
                                         # otherwise, take the first seen image as title page
                                         if firstFileNode:
                                             img.thumbnail(titlePageThumbnailSize)
-                                            img.save(downloadPathPrefix + "/"  + "_TITLE_PAGE" + illustrationExportFileType)
+                                            pathToTitlePage = downloadPathPrefix + "/" + "_TITLE_PAGE" + illustrationExportFileType
+                                            img.save(pathToTitlePage)
                             alreadyDownloadedPhysID.append(currentPhysicalFile)
                             firstFileNode=False
                     except urllib.error.URLError:
@@ -254,6 +257,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             if verbose:
                 print("Deleted temporary folders.")
 
+    return pathToTitlePage
 
 if __name__ == "__main__":
     downloadPathPrefix="."
@@ -315,7 +319,7 @@ if __name__ == "__main__":
     #     f.close()
 
     # a 120k element PPN list downloaded via OAI/PMH
-    debugLimit=7
+    debugLimit=100
     i=0
     with open("120k_ppn_list.csv") as f:
          lines = f.readlines()
@@ -366,6 +370,7 @@ if __name__ == "__main__":
 
     errorFile = open(errorLogFileName, "w")
 
+    titlePagePaths=[]
     for i in range(start,end):
         sbbPrefix = "sbbget_downloads"
         downloadPathPrefix="download_temp"
@@ -419,13 +424,21 @@ if __name__ == "__main__":
 
         #debug
         #try:
-        downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+        pathToTitlePage=downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+        if pathToTitlePage:
+            titlePagePaths.append(pathToTitlePage)
         #except Exception as ex:
         #    template = "An exception of type {0} occurred. Arguments: {1!r}"
         #    message = template.format(type(ex).__name__, ex.args)
         #    errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + message + "\t" + downloadPathPrefix + "\t" + metsModsDownloadPath + "\n")
 
     errorFile.close()
+
+    # write out paths to title pages
+    titlePagePathsFile = open("title_pages.txt", "w")
+    for path in titlePagePaths:
+        titlePagePathsFile.write(path+"\n")
+    titlePagePathsFile.close()
 
     endTime = str(datetime.now())
 
