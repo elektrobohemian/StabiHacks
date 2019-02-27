@@ -30,6 +30,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # static URL pattern for Stabi's digitized collection downloads
     metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
     tiffDownloadLink = "http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
+    saveDir=""
 
     # download the METS/MODS file first in order to find the associated documents
     currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
@@ -68,6 +69,21 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             fileID2physID[fptr.attrib['FILEID']]=div.attrib['ID']
             #print(fptr.attrib['FILEID'],fileID2physID[fptr.attrib['FILEID']])
 
+
+    # find the image with the title page (if available)
+    titlePage = root.findall(".//{http://www.loc.gov/METS/}div[@TYPE='title_page']")
+    titlePageLogID=""
+    if titlePage:
+        titlePageLogID=titlePage[0].attrib['ID']
+    else:
+        if verbose and storeExtraTitlePageThumbnails:
+            print("\tNo title page found. Using first image instead.")
+    # if we have found a title page before, select the link to its physical page
+    physTitlePageNodes=root.findall(".//{http://www.loc.gov/METS/}smLink[@{http://www.w3.org/1999/xlink}from='"+titlePageLogID+"']")
+    titlePagePhysID=""
+    if physTitlePageNodes:
+        titlePagePhysID=physTitlePageNodes[0].attrib['{http://www.w3.org/1999/xlink}to']
+
     # a list of downloaded TIFF files
     alreadyDownloadedPhysID=[]
     # a dict of paths to ALTO fulltexts (id->download dir)
@@ -81,6 +97,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
         for child in fileSec.iter('{http://www.loc.gov/METS/}fileGrp'):
             currentUse=child.attrib['USE']
 
+            firstFileNode=True
             # which contains file nodes...
             for fileNode in child.iter('{http://www.loc.gov/METS/}file'):
             # embedding FLocat node pointing to the URLs of interest
@@ -99,25 +116,47 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                     downloadDir = "./" + downloadPathPrefix + "/" + id
                     saveDir = "./" + savePathPrefix + "/"
                     tiffDir=downloadDir.replace(currentUse,'TIFF')
+
                     if not os.path.exists(tiffDir):
                         os.mkdir(tiffDir)
+
                     try:
-                        if not fileID2physID[id] in alreadyDownloadedPhysID:
+                        currentPhysicalFile=fileID2physID[id]
+                        if not currentPhysicalFile in alreadyDownloadedPhysID:
+                            isTitlePage=False
+                            # check if the current image is the title page
+                            if currentPhysicalFile==titlePagePhysID:
+                                isTitlePage=True
                             if verbose:
-                                print("Downloading to " + tiffDir)
-                            if not skipDownloads:
-                                # TODO  JPG-Wandlung der Vollseiten-TIFFs automatisieren und dokumentieren
+                                if isTitlePage:
+                                    print("Downloading to " + tiffDir+" (TITLE PAGE)")
+                                else:
+                                    print("Downloading to " + tiffDir)
+
+                            if (not skipDownloads) or (forceTitlePageDownload and isTitlePage):
                                 if not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
-                                    urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',fileID2physID[id]),tiffDir+"/"+currentPPN+".tif")
+                                    urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',currentPhysicalFile),tiffDir+"/"+currentPPN+".tif")
                                 else:
                                     with open(tiffDir+"/"+currentPPN+".tif", 'wb') as f:
-                                         resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',fileID2physID[id]), verify=False)
+                                         resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',currentPhysicalFile), verify=False)
                                          f.write(resp.content)
                                 masterTIFFpaths.append(tiffDir+"/"+currentPPN+".tif")
                                 # open the freshly download TIFF and convert it to the illustration export file format
                                 img = Image.open(tiffDir + "/" + currentPPN + ".tif")
                                 img.save(tiffDir + "/" + currentPPN + illustrationExportFileType)
-                            alreadyDownloadedPhysID.append(fileID2physID[id])
+
+                                # store the title page separately if desired
+                                if storeExtraTitlePageThumbnails:
+                                    if isTitlePage:
+                                        img.thumbnail(titlePageThumbnailSize)
+                                        img.save(downloadPathPrefix+"/" +"_TITLE_PAGE"+ illustrationExportFileType)
+                                    else:
+                                        # otherwise, take the first seen image as title page
+                                        if firstFileNode:
+                                            img.thumbnail(titlePageThumbnailSize)
+                                            img.save(downloadPathPrefix + "/"  + "_TITLE_PAGE" + illustrationExportFileType)
+                            alreadyDownloadedPhysID.append(currentPhysicalFile)
+                            firstFileNode=False
                     except urllib.error.URLError:
                         print("Error downloading " + currentPPN+".tif")
 
@@ -146,9 +185,11 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                             except urllib.error.URLError:
                                 print("\tError processing "+href)
 
-    # extract illustrations found in ALTO files
+    # extract illustrations found in ALTO files (only possible if the images have been downloaded before...)
     #illuID = 0
-    if extractIllustrations:
+    if extractIllustrations and (not skipDownloads):
+        if "PPN" not in saveDir:
+            saveDir = "./" + savePathPrefix + "/"+currentPPN+"/"
         # create a .tar file for the extracted illustrations
         tarBallPath = saveDir + currentPPN + ".tar"
         tarBall = None
@@ -166,9 +207,6 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                 print("Processing ALTO XML in: "+altoPaths[key][0]+"/"+altoPaths[key][1])
             tree = ET.parse(altoPaths[key][0]+"/"+altoPaths[key][1])
             root = tree.getroot()
-
-
-
 
             for e in root.findall('.//{http://www.loc.gov/standards/alto/ns-v2#}PrintSpace'):
                 for el in e:
@@ -229,12 +267,18 @@ if __name__ == "__main__":
     # facilitating distribution as a much fewer files will be created. however, this will slow down processing because of
     # the packing overhead.
     createTarBallOfExtractedIllustrations=True
+    # store title page thumbnails separately? (will be saved in illustrationExportFileType format) works only if skipDownloads=False or forceTitlePageDownload=True
+    storeExtraTitlePageThumbnails=True
+    # the maximum dimensions ot the thumbnail as a tuple (<width,height>) (aspect ratio remains intact)
+    titlePageThumbnailSize=(512,512)
     # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
     # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
     deleteMasterTIFFs=True
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
-    skipDownloads=False
+    skipDownloads=True
+    # overrides skipDownloads to force the download of title pages (first pages will not be downloaded!)
+    forceTitlePageDownload = True
     # enables verbose output during processing
     verbose=True
     # determines which ALTO elements should be extracted
@@ -264,11 +308,24 @@ if __name__ == "__main__":
     startTime = str(datetime.now())
 
     # a PPN list for testing purposes (some with OCR)
-    with open("test_ppn_list.txt") as f:
+    #with open("test_ppn_list.txt") as f:
+    #     lines = f.readlines()
+    #     for line in lines:
+    #        ppns.append(line.replace("\n", ""))
+    #     f.close()
+
+    # a 120k element PPN list downloaded via OAI/PMH
+    debugLimit=7
+    i=0
+    with open("120k_ppn_list.csv") as f:
          lines = f.readlines()
          for line in lines:
-            ppns.append(line.replace("\n", ""))
+            ppns.append(line.replace("\n", "").replace("PPN",""))
+            i+=1
+            if i>=debugLimit:
+                break
          f.close()
+
 
     # a PPN list with fulltexts
     # with open('OCR-PPN-Liste.txt') as f:
@@ -360,12 +417,13 @@ if __name__ == "__main__":
             os.mkdir(metsModsDownloadPath)
         summaryString += "\n\tMETS/MODS files were, e.g., stored at: " + metsModsDownloadPath
 
-        try:
-            downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
-        except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments: {1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + message + "\t" + downloadPathPrefix + "\t" + metsModsDownloadPath + "\n")
+        #debug
+        #try:
+        downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+        #except Exception as ex:
+        #    template = "An exception of type {0} occurred. Arguments: {1!r}"
+        #    message = template.format(type(ex).__name__, ex.args)
+        #    errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + message + "\t" + downloadPathPrefix + "\t" + metsModsDownloadPath + "\n")
 
     errorFile.close()
 
