@@ -21,15 +21,10 @@ pd.set_option('display.max_rows', 40)
 pd.set_option('display.notebook_repr_html', True)
 
 
-from collections import OrderedDict # provides the ordered dictionary
-import re # for regular expressions used below
+
 import urllib # to read from URLs
-import json
-import itertools
-import os.path
 from datetime import datetime # for time measurement
 import sys
-import os
 import pickle
 
 
@@ -53,6 +48,7 @@ if runningFromWithinStabi:
     opener = urllib.request.build_opener(proxy)
     urllib.request.install_opener(opener)
 
+# create OAI-PMH reader pointing to the Stabi OAI-PMH endpoint of the digitzed collections
 sickle = Sickle('http://digital.staatsbibliothek-berlin.de/oai')
 records = sickle.ListRecords(metadataPrefix='oai_dc', set='DC_all')
 
@@ -137,13 +133,13 @@ for record in savedRecords:
                     values["PPN"].append(ppn)
             else:
                 values[k].append(np.nan)
-# create a data frame from the
-# p27 df=pd.DataFrame(pd.to_numeric(values,errors='coerce'))
+# create a data frame from the values
 df = pd.DataFrame(values)
 df['date'] = pd.to_numeric(df['date'], errors='ignore', downcast='integer')
-# df=pd.DataFrame(values)
-# df=df.convert_objects(convert_dates=False, convert_numeric=True, convert_timedeltas=False, copy=True)
 
+# save everything:
+# 1) an Excel file with all columns
+# 2) a one-column "CSV" with found PPNs compatible with sbbget.py
 df.to_excel("./ppn_records_%i.xlsx"%len(savedRecords))
 df.PPN.to_csv("./ppn_list_%i.csv"%len(savedRecords),index=False)
 printLog("Done.")
