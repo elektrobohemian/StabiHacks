@@ -42,20 +42,22 @@ for ppn in ppns:
         #print("Missing PPN"+ppn)
         missingCount+=1
         try:
-            downloadedFile="./temp/" + ppn + ".jpg"
-            with open(downloadedFile, 'wb') as f:
-                resp = requests.get(
-                    downloadLink.replace('@PPN@', ppn),verify=False)
-                f.write(resp.content)
-            # quick'n'dirty fix, a 34 byte file is an error
-            statinfo = os.stat(downloadedFile)
-            if statinfo.st_size<=34:
-                errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + "NOT EXISTENT" + "\n")
-                os.remove(downloadedFile)
-            else:
-                img = Image.open(downloadedFile)
-                img.thumbnail(titlePageThumbnailSize)
-                img.save(downloadedFile)
+            downloadedFile="./temp/PPN" + ppn + ".jpg"
+            # skip already downloaded images
+            if not os.path.exists(downloadedFile):
+                with open(downloadedFile, 'wb') as f:
+                    resp = requests.get(
+                        downloadLink.replace('@PPN@', ppn),verify=False)
+                    f.write(resp.content)
+                # quick'n'dirty fix, a 34 byte file is an error
+                statinfo = os.stat(downloadedFile)
+                if statinfo.st_size<=34:
+                    errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + "NOT EXISTENT" + "\n")
+                    os.remove(downloadedFile)
+                else:
+                    img = Image.open(downloadedFile)
+                    img.thumbnail(titlePageThumbnailSize)
+                    img.save(downloadedFile)
         except Exception as ex:
             print("Error downloading " + ppn+".jpg")
             template = "An exception of type {0} occurred. Arguments: {1!r}"
