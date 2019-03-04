@@ -28,6 +28,8 @@ from datetime import datetime
 
 # the paths to the files to be analyzed
 picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_001_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_003_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_004_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_005_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_006_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_007_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_008_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_009_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_010_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_011_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_012_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
+#debug
+#picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
 #picaPlusFilePaths=["./analysis/test_large.pp"]
 
 # toggles textual output
@@ -160,8 +162,9 @@ if __name__ == "__main__":
                 # Do stuff with byte.
 
                 byte = f.read(1)
-                # debug (print all seen bytes)
-                # print(str(byte)+"\t"+str(int.from_bytes(byte,sys.byteorder)))
+                # debug (print all seen bytes for a given PPN)
+                if ppn=="084216779X":
+                    print(str(byte)+"\t"+str(int.from_bytes(byte,sys.byteorder)))
                 i += 1
 
                 # if in unicode processing mode, compose 2 byte unicode character
@@ -224,7 +227,8 @@ if __name__ == "__main__":
                             outputLine=ppn + "\t" +tokens[0]+"\t"+str(subtokens)
 
                         if verbose:
-                            print(outputLine)
+                            #print(outputLine)
+                            pass
 
                         if createTextOutput:
                             if language in outputTextFilePaths:
@@ -241,13 +245,16 @@ if __name__ == "__main__":
                 # if we find a \n followed by \x1d, we have found a record separator
                 if byte == b'\x1d' and last == b'\n':
                     if verbose:
-                        print("*NEW_RECORD*")
+                        #print("*NEW_RECORD*")
+                        pass
                     numberOfRecords+=1
                     language="None"
 
                 # take care of 2 byte unicode characters, toggle unicode processing mode, see above
-                # TODO handling of ß
-                if byte == b'\xcc':
+                #b'\xe2'	226
+                #b'\x80'	128
+                #b'\x99'	153
+                if byte == b'\xcc' or byte == b'\xc3' or byte == b'\xe2':
                     unicodeHot = True
                     lastUnicodeMarker = byte
                 else:
