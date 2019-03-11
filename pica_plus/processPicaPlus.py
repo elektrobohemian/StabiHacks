@@ -20,8 +20,8 @@ from datetime import datetime
 
 # general overview of Pica + fields (in German) is available under https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/inhalt.shtml
 
-# 028B  2. Verfasser und weitere (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
-# 021B  Hauptsachtitel bei j-Sätzen (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4004.pdf)
+# 028B  2. Verfasser und weitere (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
+# 021B  Hauptsachtitel bei j-Sätzen (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4004.pdf)
 # run time for the full 2018 set
 # Started at:	2019-02-20 12:37:25.704093
 # Ended at:	2019-02-20 15:40:56.240565
@@ -29,7 +29,7 @@ from datetime import datetime
 # the paths to the files to be analyzed
 picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_001_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_002_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_003_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_004_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_005_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_006_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_007_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_008_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_009_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_010_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_011_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_012_20180103.pp""","""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
 #debug
-#picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
+picaPlusFilePaths=["""C:\david.local\cbs\\vollabzug\iln11_013_20180103.pp"""]
 #picaPlusFilePaths=["./analysis/test_large.pp"]
 
 # toggles textual output
@@ -46,7 +46,7 @@ statisticsFilePath=analysisPrefix+"/statistics.txt"
 
 # the fields of interest indicate the fields that have to be extracted, please note that 003@ and 010@ must not be removed because these fields contain
 # the unique ID of the records and its language
-fieldsOfInterest=['003@','028A','028B','021A','021B','033A','010@','019@']
+fieldsOfInterest=['003@','028A','028B','021A','021B','033A','010@','019@','011@']
 # enables verbose output during processing
 verbose = True
 
@@ -128,6 +128,19 @@ def handle019a(tokens):
             ort=token[1:].replace("@","").strip()
             return(ort)
 
+def handle011AT(tokens):
+    """
+    Processes the 011@ (https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1100.pdf) field. Currently, only subfield a is supported. Only the first year of publication is extracted.
+    For details (in German), see:  https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1100.pdf)
+    :param tokens: a list of tokens of the field 011@
+    :return: the first found year of publication
+    """
+    dateOfPublication=""
+
+    for token in tokens:
+        if token.startswith("a"):
+            dateOfPublication=token[1:].replace("@","").strip()
+            return(dateOfPublication)
 
 if __name__ == "__main__":
     startTime = str(datetime.now())
@@ -189,7 +202,7 @@ if __name__ == "__main__":
                         outputLine=""
                         subtokens=tokens[1].split('\x1f')
                         if tokens[0]=="010@":
-                            # 010@  Sprache (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1500.pdf)
+                            # 010@  Sprache (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1500.pdf)
                             language=str(subtokens[0][1:])
                             if not language in languageHist:
                                 languageHist[language]=1
@@ -200,11 +213,11 @@ if __name__ == "__main__":
                             # override the last seen PPN in case we have to deal with a new record
                             ppn=str(subtokens[0])
                         elif tokens[0]=="021A":
-                            # 021A  Hauptsachtitel (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4000.pdf)
+                            # 021A  Hauptsachtitel (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4000.pdf)
                             r=handle021a(subtokens)
                             outputLine=ppn + '\t' +tokens[0] + '\t' + r
                         elif tokens[0]=="028A":
-                            # 028A  1. Verfasser (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
+                            # 028A  1. Verfasser (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/3000.pdf)
                             r=handle028a(subtokens)
                             # if a GND is has been found add it to the name following after @
                             if r[1]:
@@ -212,7 +225,7 @@ if __name__ == "__main__":
                             else:
                                 outputLine = ppn + '\t' + tokens[0] + '\t' + r[0]
                         elif tokens[0]=="033A":
-                            # 033A  Ort und Verlag (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
+                            # 033A  Ort und Verlag (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/4030.pdf)
                             r=handle033a(subtokens)
                             # if a GND is has been found add it to the name following after @
                             if r[1]:
@@ -220,8 +233,14 @@ if __name__ == "__main__":
                             else:
                                 outputLine = ppn + '\t' + tokens[0] + '\t' + r[0]
                         elif tokens[0]=="019@":
-                            # 019@  Erscheinungsland (siehe https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
+                            # 019@  Erscheinungsland (see https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1700.pdf)
                             r=handle019a(subtokens)
+                            outputLine = ppn + '\t' + tokens[0] + '\t' + r
+                        elif tokens[0]=="011@":
+                            # 011@ (Erscheinungsjahr) (https://www.gbv.de/bibliotheken/verbundbibliotheken/02Verbund/01Erschliessung/02Richtlinien/01KatRicht/1100.pdf)
+                            r=handle011AT(subtokens)
+                            if not r:
+                                r="s.a."
                             outputLine = ppn + '\t' + tokens[0] + '\t' + r
                         else:
                             outputLine=ppn + "\t" +tokens[0]+"\t"+str(subtokens)
