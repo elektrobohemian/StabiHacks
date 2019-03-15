@@ -34,13 +34,20 @@ if __name__ == '__main__':
     numberOfExtractedIllustrations=0
     i=0
     noTarFiles=len(tarFiles)
+    minExtract=1
+    maxExtract=0
     for tarFile in tarFiles:
         tarBall = TAR.open(tarFile, "r")
         members=tarBall.getmembers()
         numberOfExtractedIllustrations+=len(members)
+        if len(members)<minExtract:
+            minExtract=len(members)
+        if len(members)>maxExtract:
+            maxExtract=len(members)
         i+=1
         if i%1000==0:
-            print("Found %i extracted illustration in %i files of %i. Continuing..."%(numberOfExtractedIllustrations,i,noTarFiles))
+            print("Found %i extracted illustrations in %i files of %i. Continuing..."%(numberOfExtractedIllustrations,i,noTarFiles))
+            print("Min: %i; Max: %i"%(minExtract,maxExtract))
         #debug
         #print("%i members in %s"%(len(members),tarFile))
     print("Total number of files: %i"%numberOfExtractedIllustrations)
