@@ -91,7 +91,7 @@ if __name__ == '__main__':
     for i in range(0,numberOfClusters):
         htmlFile=open(outputDir+str(i)+".html", "w")
         htmlFile.write("<html><body>\n")
-        htmlFile.write("<h1>Cluster "+str(i)+"</h1>\n")
+        #htmlFile.write("<h1>Cluster "+str(i)+"</h1>\n")
         htmlFile.write("<img src='"+str(i)+".png' width=200 />") # cluster center histogram will created below
         htmlFiles.append(htmlFile)
     # image directory must be relative to the directory of the html files
@@ -129,6 +129,7 @@ if __name__ == '__main__':
         plt.figure(0)
         # clean previous plots
         plt.clf()
+        plt.title("Cluster %i"%j)
         #red
         for i in range(0, 256):
             plt.bar(i, histogram[i],color='red', alpha=0.3)
