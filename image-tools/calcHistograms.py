@@ -17,6 +17,7 @@ import tarfile as TAR
 import sys
 from datetime import datetime
 from PIL import Image
+import warnings
 import json
 import pickle
 import zipfile
@@ -42,6 +43,9 @@ def findTARfiles(path):
 
 
 if __name__ == '__main__':
+    # as we expect large files, ignor DecompressionBombWarning from Pillow
+    warnings.simplefilter('ignore', Image.DecompressionBombWarning)
+
     debugLimit=1
     tempTarDir="./tmp/"
     verbose=True
