@@ -64,12 +64,14 @@ if __name__ == '__main__':
 
     histograms=[]
 
+    printLog("Started processing...")
     startTime = str(datetime.now())
 
     for tarFile in tarFiles:
         i+=1
 
-        printLog("Processing %s" % tarFile)
+        if verbose:
+            printLog("Processing %s" % tarFile)
         ppn=os.path.basename(tarFile).replace(".tar","")
         tarBall = TAR.open(tarFile, "r")
 
@@ -85,7 +87,8 @@ if __name__ == '__main__':
             printLog("Min: %i; Max: %i\n"%(minExtract,maxExtract))
 
         # extraction
-        printLog("\t Extracting tar file...")
+        if verbose:
+            printLog("\t Extracting tar file...")
         jpgFiles=[]
         for member in members:
             #tarBall.extract(member,tempTarDir)
@@ -95,7 +98,8 @@ if __name__ == '__main__':
                 tarBall.extract(member, tempTarDir)
 
         # process the JPEG files
-        printLog("\t Processing JPEG files...")
+        if verbose:
+            printLog("\t Processing JPEG files...")
         zipFile = zipfile.ZipFile(tempTarDir+ppn+"_histograms.zip", "w",compression=zipfile.ZIP_DEFLATED)
 
         for jpeg in jpgFiles:
@@ -115,13 +119,17 @@ if __name__ == '__main__':
             zipFile.write(pickleFile)
             os.remove(pickleFile)
 
-            #with open(tempTarDir+ppn+"_"+jpeg.replace(".","_")+"_.json", "w") as write_file:
-            #    json.dump(histogramDict, write_file)
+            jsonFile=tempTarDir+ppn+"_"+jpeg.replace(".","_")+"_.json"
+            with open(jsonFile, "w") as write_file:
+                json.dump(histogramDict, write_file)
+            zipFile.write(jsonFile)
+            os.remove(jsonFile)
 
         zipFile.close()
 
         # finally, remove the files again
-        printLog("\t Removing files...")
+        if verbose:
+            printLog("\t Removing files...")
         for jpeg in jpgFiles:
             os.remove(tempTarDir+jpeg)
 
