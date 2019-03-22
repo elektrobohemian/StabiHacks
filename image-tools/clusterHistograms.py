@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 import matplotlib.pyplot as plt
 
 from PIL import Image
@@ -47,6 +49,9 @@ if __name__ == '__main__':
     debugLimit=1
     verbose=True
     outputDir= "./analysis/"
+    # image directory must be relative to the directory of the html files
+    imgBaseDir = "./sbbget_downloads/extracted_images/"
+    numberOfClusters = 20
 
     #general preparations
     if not os.path.exists(outputDir):
@@ -65,27 +70,29 @@ if __name__ == '__main__':
     ppnList=[]
     nameList=[]
     combinedHistograms=[]
+    dominantColors=[]
     for zipFile in zipFiles:
         with zipfile.ZipFile(zipFile, 'r') as myzip:
             members=myzip.namelist()
             for member in members:
                 if member.endswith(".pickle"):
                     with myzip.open(member) as myfile:
-                        histDict=pickle.load(myfile)
-                        histograms.append(histDict)
+                        histogramDict=pickle.load(myfile)
+                        histograms.append(histogramDict)
 
                         # fill the DS data structures
-                        ppnList.append(histDict['ppn'])
-                        nameList.append(histDict['extractName'])
-                        combinedHistograms.append(histDict['redHistogram']+histDict['blueHistogram']+histDict['greenHistogram'])
+                        ppnList.append(histogramDict['ppn'])
+                        nameList.append(histogramDict['extractName'])
+                        combinedHistograms.append(histogramDict['redHistogram'] + histogramDict['blueHistogram'] + histogramDict['greenHistogram'])
+                        dominantColors.append(histogramDict['dominantColors'])
     printLog("Number of combined histograms: %i of length: %i"%(len(combinedHistograms),len(combinedHistograms[0])))
 
-    printLog("Clustering...")
+    printLog("Clustering histograms...")
     X=np.array(combinedHistograms)
-    numberOfClusters=20
     kmeans = MiniBatchKMeans(n_clusters=numberOfClusters, random_state = 0, batch_size = 6)
     kmeans=kmeans.fit(X)
     #labels_
+
 
     printLog("Creating report files...")
     htmlFiles=[]
@@ -95,15 +102,18 @@ if __name__ == '__main__':
         #htmlFile.write("<h1>Cluster "+str(i)+"</h1>\n")
         htmlFile.write("<img src='"+str(i)+".png' width=200 />") # cluster center histogram will created below
         htmlFiles.append(htmlFile)
-    # image directory must be relative to the directory of the html files
-    imgBaseDir="./sbbget_downloads/extracted_images/"
+
     for i, label in enumerate(kmeans.labels_):
+        # as the dominant colors list may contain non-unique values, we convert them to a set
+        for domCol in set(dominantColors[i]):
+            htmlFiles[label].write("<p style='color:"+domCol+";'>" +domCol + "</p>\n")
         htmlFiles[label].write("<img height=200 src='"+imgBaseDir+ppnList[i]+"/"+nameList[i]+"' />\n")
 
     # close the HTML files
     for h in htmlFiles:
         h.write("</body></html>\n")
         h.close()
+
 
     # create the summarization main HTML page
     htmlFile = open(outputDir+"_main.html", "w")
@@ -112,16 +122,6 @@ if __name__ == '__main__':
         htmlFile.write("<iframe src='./"+str(i)+".html"+"' height=400 ><p>Long live Netscape!</p></iframe>")
     htmlFile.write("</body></html>\n")
     htmlFile.close()
-
-
-    # debug
-    #image = Image.open("./red.png")
-    #histogram = image.histogram()
-    #histogramDict=dict()
-    #histogramDict['redHistogram'] = histogram[0:256]
-    #histogramDict['blueHistogram'] = histogram[256:512]
-    #histogramDict['greenHistogram'] = histogram[512:768]
-    #image.close()
 
     # save the cluster center histograms
     printLog("Rendering %i cluster center histograms..."%len(kmeans.cluster_centers_))
@@ -143,6 +143,41 @@ if __name__ == '__main__':
         #debug
         #plt.show()
         plt.savefig(outputDir+str(j)+".png")
+
+    # text-based clusterig
+    printLog("Clustering on the basis of tf*idf...")
+    tfidfvectorizer = TfidfVectorizer(min_df=1)
+    dominantColorStrings = list(map(lambda x: ' '.join(x), dominantColors))
+    Xtfidf = tfidfvectorizer.fit_transform(dominantColorStrings)
+
+
+    kmeans = MiniBatchKMeans(n_clusters=numberOfClusters, random_state=0, batch_size=6)
+    kmeans = kmeans.fit(Xtfidf)
+
+    printLog("Creating report files...")
+    htmlFiles = []
+    for i in range(0, numberOfClusters):
+        htmlFile = open(outputDir + str(i) + "_txt.html", "w")
+        htmlFile.write("<html><body>\n")
+        # htmlFile.write("<h1>Cluster "+str(i)+"</h1>\n")
+        #htmlFile.write("<img src='" + str(i) + ".png' width=200 />")  # cluster center histogram will created below
+        htmlFiles.append(htmlFile)
+
+    for i, label in enumerate(kmeans.labels_):
+        htmlFiles[label].write("<img height=200 src='" + imgBaseDir + ppnList[i] + "/" + nameList[i] + "' />\n")
+
+    # close the HTML files
+    for h in htmlFiles:
+        h.write("</body></html>\n")
+        h.close()
+
+    # create the summarization main HTML page
+    htmlFile = open(outputDir + "_main_txt.html", "w")
+    htmlFile.write("<html><body>\n")
+    for i in range(0, numberOfClusters):
+        htmlFile.write("<iframe src='./" + str(i) + "_txt.html" + "' height=400 ><p>Long live Netscape!</p></iframe>")
+    htmlFile.write("</body></html>\n")
+    htmlFile.close()
 
 
     df=pd.DataFrame.from_dict(histograms)

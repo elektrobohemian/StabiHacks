@@ -22,6 +22,10 @@ import json
 import pickle
 import zipfile
 
+from sklearn.cluster import MiniBatchKMeans
+import numpy as np
+import webcolors
+
 
 
 def printLog(text):
@@ -41,16 +45,55 @@ def findTARfiles(path):
                 tarFilePaths.append(os.path.join(root, file_))
     return tarFilePaths
 
+# based on https://stackoverflow.com/questions/9694165/convert-rgb-color-to-english-color-name-like-green-with-python
+# the following two methods are taken from the answer by "fraxel"
+def closest_colour(requested_colour):
+    min_colours = {}
+    for key, name in webcolors.css3_hex_to_names.items():
+        r_c, g_c, b_c = webcolors.hex_to_rgb(key)
+        rd = (r_c - requested_colour[0]) ** 2
+        gd = (g_c - requested_colour[1]) ** 2
+        bd = (b_c - requested_colour[2]) ** 2
+        min_colours[(rd + gd + bd)] = name
+    return min_colours[min(min_colours.keys())]
+
+def get_colour_name(requested_colour):
+    try:
+        closest_name = actual_name = webcolors.rgb_to_name(requested_colour)
+    except ValueError:
+        closest_name = closest_colour(requested_colour)
+        actual_name = None
+    return actual_name, closest_name
+# end of fraxel's code
+
+# taken from https://www.pyimagesearch.com/2014/05/26/opencv-python-k-means-color-clustering/
+def centroid_histogram(clt):
+    # grab the number of different clusters and create a histogram
+    # based on the number of pixels assigned to each cluster
+    numLabels = np.arange(0, len(np.unique(clt.labels_)) + 1)
+    (hist, _) = np.histogram(clt.labels_, bins=numLabels)
+
+    # normalize the histogram, such that it sums to one
+    hist = hist.astype("float")
+    hist /= hist.sum()
+
+    # return the histogram
+    return hist
+# end
+
 
 if __name__ == '__main__':
     # as we expect large files, ignor DecompressionBombWarning from Pillow
     warnings.simplefilter('ignore', Image.DecompressionBombWarning)
 
+    # number of clusters for the k-means dominant color algorithm
+    numberOfDominantColorClusters = 7  # (7 seems to be a good compromise)
+
     debugLimit=1
     tempTarDir="./tmp/"
     verbose=True
-    #tarFiles=findTARfiles("C:\david.local\__datasets\extracted_images\\")
-    tarFiles = findTARfiles("/data2/sbbget/sbbget_downloads/extracted_images/")
+    tarFiles=findTARfiles("C:\david.local\__datasets\extracted_images.test\\")
+    #tarFiles = findTARfiles("/data2/sbbget/sbbget_downloads/extracted_images/")
 
     #general preparations
     if not os.path.exists(tempTarDir):
@@ -111,11 +154,32 @@ if __name__ == '__main__':
             histogramDict['ppn']=ppn
             histogramDict['extractName']=jpeg
 
-            image = Image.open(tempTarDir + jpeg)
+            # open an image an convert it to RGB because we don't want to cope with RGB/RGBA conversions later on
+            image = Image.open(tempTarDir + jpeg).convert('RGB')
             histogram = image.histogram()
             histogramDict['redHistogram'] = histogram[0:256]
             histogramDict['blueHistogram'] = histogram[256:512]
             histogramDict['greenHistogram'] = histogram[512:768]
+            # dominant color detection
+            # scale the image down to speed up later processing (alas, this assumption has not been validated yet...)
+            w = h = 256
+            size = w, h
+            image.thumbnail(size)
+            # created a numpy array from the input image
+            arr = np.array(image)
+            # reshape the image for the clustering algorithm
+            pix = arr.reshape((arr.shape[0] * arr.shape[1], 3))
+
+            # find the clusters as specified above
+            clt = MiniBatchKMeans(n_clusters=numberOfDominantColorClusters)
+            clt.fit(pix)
+            histogramDict['dominantColors']=[]
+            for centroid in np.round(clt.cluster_centers_, 0):
+                actual_name, closest_name = get_colour_name(centroid)
+                histogramDict['dominantColors'].append(closest_name)
+                #print("\nActual colour name:", actual_name, ", closest colour name:", closest_name)
+            #hist = centroid_histogram(clt)
+            #print(hist)
             image.close()
 
             pickleFile=tempTarDir + ppn + "_" + jpeg.replace(".", "_") + "_.pickle"
