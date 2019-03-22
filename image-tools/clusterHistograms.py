@@ -69,14 +69,15 @@ if __name__ == '__main__':
         with zipfile.ZipFile(zipFile, 'r') as myzip:
             members=myzip.namelist()
             for member in members:
-                with myzip.open(member) as myfile:
-                    histDict=pickle.load(myfile)
-                    histograms.append(histDict)
+                if member.endswith(".pickle"):
+                    with myzip.open(member) as myfile:
+                        histDict=pickle.load(myfile)
+                        histograms.append(histDict)
 
-                    # fill the DS data structures
-                    ppnList.append(histDict['ppn'])
-                    nameList.append(histDict['extractName'])
-                    combinedHistograms.append(histDict['redHistogram']+histDict['blueHistogram']+histDict['greenHistogram'])
+                        # fill the DS data structures
+                        ppnList.append(histDict['ppn'])
+                        nameList.append(histDict['extractName'])
+                        combinedHistograms.append(histDict['redHistogram']+histDict['blueHistogram']+histDict['greenHistogram'])
     printLog("Number of combined histograms: %i of length: %i"%(len(combinedHistograms),len(combinedHistograms[0])))
 
     printLog("Clustering...")
