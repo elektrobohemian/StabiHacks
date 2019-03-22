@@ -23,6 +23,7 @@ import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import PCA
 
 import matplotlib.pyplot as plt
 
@@ -178,6 +179,51 @@ if __name__ == '__main__':
         htmlFile.write("<iframe src='./" + str(i) + "_txt.html" + "' height=400 ><p>Long live Netscape!</p></iframe>")
     htmlFile.write("</body></html>\n")
     htmlFile.close()
+
+
+    # PCA-based clustering
+    printLog("Clustering histograms with 3D PCA...")
+    X = np.array(combinedHistograms)
+    pca = PCA(n_components=3)
+    pca.fit(X)
+    X_dimReduced=pca.transform(X)
+
+    kmeans = MiniBatchKMeans(n_clusters=numberOfClusters, random_state=0, batch_size=6)
+    kmeans = kmeans.fit( X_dimReduced)
+    
+
+    printLog("Creating report files...")
+    htmlFiles = []
+    for i in range(0, numberOfClusters):
+        htmlFile = open(outputDir + str(i) + "_PCA.html", "w")
+        htmlFile.write("<html><body>\n")
+        # htmlFile.write("<h1>Cluster "+str(i)+"</h1>\n")
+        htmlFile.write("<img src='" + str(i) + ".png' width=200 />")  # cluster center histogram will created below
+        htmlFiles.append(htmlFile)
+
+    for i, label in enumerate(kmeans.labels_):
+        # as the dominant colors list may contain non-unique values, we convert them to a set
+        for domCol in set(dominantColors[i]):
+            htmlFiles[label].write("<p style='color:" + domCol + ";'>" + domCol + "</p>\n")
+        htmlFiles[label].write("<img height=200 src='" + imgBaseDir + ppnList[i] + "/" + nameList[i] + "' />\n")
+
+    # close the HTML files
+    for h in htmlFiles:
+        h.write("</body></html>\n")
+        h.close()
+
+    # create the summarization main HTML page
+    htmlFile = open(outputDir + "_main_PCA.html", "w")
+    htmlFile.write("<html><body>\n")
+    for i in range(0, numberOfClusters):
+        htmlFile.write("<iframe src='./" + str(i) + "_PCA.html" + "' height=400 ><p>Long live Netscape!</p></iframe>")
+    htmlFile.write("</body></html>\n")
+    htmlFile.close()
+
+    # save the cluster center histograms
+    printLog("Rendering %i cluster center histograms..." % len(kmeans.cluster_centers_))
+
+
 
 
     df=pd.DataFrame.from_dict(histograms)
