@@ -23,6 +23,7 @@ import pickle
 import zipfile
 
 from sklearn.cluster import MiniBatchKMeans
+from skimage.feature import hog
 import numpy as np
 import webcolors
 
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     numberOfDominantColorClusters = 7  # (7 seems to be a good compromise)
 
     debugLimit=1
-    tempTarDir="./tmp/"
+    tempTarDir="./lowLevelFeatures/"
     verbose=True
     tarFiles=findTARfiles("C:\david.local\__datasets\extracted_images.test\\")
     #tarFiles = findTARfiles("/data2/sbbget/sbbget_downloads/extracted_images/")
@@ -147,7 +148,7 @@ if __name__ == '__main__':
         # process the JPEG files
         if verbose:
             printLog("\t Processing JPEG files...")
-        zipFile = zipfile.ZipFile(tempTarDir+ppn+"_histograms.zip", "w",compression=zipfile.ZIP_DEFLATED)
+        zipFile = zipfile.ZipFile(tempTarDir+ppn+"_lowlevelfeats.zip", "w",compression=zipfile.ZIP_DEFLATED)
 
         for jpeg in jpgFiles:
             histogramDict=dict()
@@ -160,6 +161,11 @@ if __name__ == '__main__':
             histogramDict['redHistogram'] = histogram[0:256]
             histogramDict['blueHistogram'] = histogram[256:512]
             histogramDict['greenHistogram'] = histogram[512:768]
+
+            # HOG feature (https://scikit-image.org/docs/dev/api/skimage.feature.html#skimage.feature.hog)
+            fd = hog(image, orientations=8, pixels_per_cell=(16, 16),cells_per_block=(1, 1), multichannel=True,block_norm='L2-Hys')
+            histogramDict['HOG']=fd.tolist()
+
             # dominant color detection
             # scale the image down to speed up later processing (alas, this assumption has not been validated yet...)
             w = h = 256
@@ -174,12 +180,17 @@ if __name__ == '__main__':
             clt = MiniBatchKMeans(n_clusters=numberOfDominantColorClusters)
             clt.fit(pix)
             histogramDict['dominantColors']=[]
+            histogramDict['dominantColorsRGB'] = []
             for centroid in np.round(clt.cluster_centers_, 0):
                 actual_name, closest_name = get_colour_name(centroid)
                 histogramDict['dominantColors'].append(closest_name)
+                histogramDict['dominantColorsRGB'].append(centroid.astype(int).tolist())
                 #print("\nActual colour name:", actual_name, ", closest colour name:", closest_name)
             #hist = centroid_histogram(clt)
             #print(hist)
+
+
+            # finally, close the image
             image.close()
 
             pickleFile=tempTarDir + ppn + "_" + jpeg.replace(".", "_") + "_.pickle"
