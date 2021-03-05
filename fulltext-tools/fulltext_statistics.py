@@ -1,4 +1,4 @@
-# Copyright 2018 David Zellhoefer
+# Copyright 2021 David Zellhoefer
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import pandas as pd
 import urllib.request
 from urllib.parse import urlparse
 import zipfile
+from time import sleep
 
 import nltk as nltk
 
@@ -33,7 +34,7 @@ runningFromWithinStabi = False
 analysisPrefix = "analysis/"
 # if set to onlineMode, the tool will not try to use local files, instead it will check for an Excel file stored at
 # oaiAnalyzerResultFile (created by oai-analyzer.py) and download ALTO files
-onlineMode=True
+onlineMode=False
 oaiAnalyzerResultFile="../_datasets/analyticaldf.xlsx"
 # True if downloaded ALTO documents have to be kept after processing
 keepALTO=False
@@ -156,6 +157,12 @@ if __name__ == "__main__":
         raise SystemExit
 
     createSupplementaryDirectories()
+
+    if onlineMode:
+        print("WARNING: Operating in online mode. The script will not use local files. Processing will continue in 30 seconds.")
+        sleep(30)
+    else:
+        print("Processing local files from: "+sbbGetBasePath)
 
     # open error log
     errorFile = open(errorLogFileName, "w")
