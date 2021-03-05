@@ -31,15 +31,13 @@ sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
 # Berlin State Library internal setting
 runningFromWithinStabi = False
 # analysis path prefix
-analysisPrefix = "analysis/"
+#analysisPrefix = "analysis/"
 # if set to onlineMode, the tool will not try to use local files, instead it will check for an Excel file stored at
 # oaiAnalyzerResultFile (created by oai-analyzer.py) and download ALTO files
 onlineMode=False
 oaiAnalyzerResultFile="../_datasets/analyticaldf.xlsx"
 # True if downloaded ALTO documents have to be kept after processing
 keepALTO=False
-# analysis path prefix
-analysisPrefix = "analysis/"
 # temporary downloads prefix
 tempDownloadPrefix = "fulltext_download/"
 # True if ALTO download should be resumed
@@ -69,14 +67,15 @@ def printLog(text):
     sys.stdout.flush()
 
 def createSupplementaryDirectories():
-    if not os.path.exists(analysisPrefix):
-        if verbose:
-            print("Creating " + analysisPrefix)
-        os.mkdir(analysisPrefix)
-    if not os.path.exists(tempDownloadPrefix):
-        if verbose:
-            print("Creating " + tempDownloadPrefix)
-        os.mkdir(tempDownloadPrefix)
+    #if not os.path.exists(analysisPrefix):
+    #    if verbose:
+    #        print("Creating " + analysisPrefix)
+    #    os.mkdir(analysisPrefix)
+    if onlineMode:
+        if not os.path.exists(tempDownloadPrefix):
+            if verbose:
+                print("Creating " + tempDownloadPrefix)
+            os.mkdir(tempDownloadPrefix)
 
 def downloadALTO(ppn,url):
     """
@@ -129,6 +128,8 @@ def parseALTO(docPath):
         return (None,NO_ALTO)
 
 def creatStatisticFiles(statFilePath, resultTxt):
+    if verbose:
+        print("\tCreating statistics file at: "+statFilePath)
     statFile = open(statFilePath, "w")
     # standard NLP workflow
     # 1) tokenize the text
@@ -210,7 +211,7 @@ if __name__ == "__main__":
                 else:
                     if verbose:
                         printLog("\tParsing problem (%s): %s" % (errorCodeAsText(error),file))
-                    errorFile.write("Discarded %s.\tNo ALTO root element found OR parsing error.\n" % file)
+                    errorFile.write("Discarded %s.\tNo ALTO root element found OR parsing error: %s\n" % (file,errorCodeAsText(error)))
             txtFile=open(sbbGetBasePath+ppn+"/fulltext.txt","w")
             txtFile.write(textPerPPN)
             txtFile.close()
