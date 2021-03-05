@@ -1,4 +1,4 @@
-# Copyright 2018 David Zellhoefer
+# Copyright 2021 David Zellhoefer
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,24 +19,39 @@ from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 import os
 from PIL import Image
-from time import gmtime, strftime
+from time import gmtime, strftime, sleep
 from datetime import datetime
-
+import sys
 import requests
 import tarfile as TAR
 
 
 def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # static URL pattern for Stabi's digitized collection downloads
-    metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
+    # old version
+    #metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
+    metaDataDownloadURLPrefix ="https://content.staatsbibliothek-berlin.de/dc/"
+    # old
     tiffDownloadLink = "http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
+    
+    
+    tiffDownloadLink="https://content.staatsbibliothek-berlin.de/dms/@PPN@/800/0/@PHYSID@.tif?original=true"
+
     saveDir=""
     pathToTitlePage=""
 
     # download the METS/MODS file first in order to find the associated documents
-    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
+    #
+    # old
+    # currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
+    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN+".mets.xml"
+    # debug
+    #print(currentDownloadURL)
     # todo: error handling
+    # old version
     metsModsPath= metsModsDownloadPath+"/"+currentPPN+".xml"
+    #metsModsPath= metsModsDownloadPath+"/"+currentPPN+".mets.xml"
+    print(metsModsPath)
     if runningFromWithinStabi:
         proxy = urllib.request.ProxyHandler({})
         opener = urllib.request.build_opener(proxy)
@@ -70,7 +85,18 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             fileID2physID[fptr.attrib['FILEID']]=div.attrib['ID']
             #print(fptr.attrib['FILEID'],fileID2physID[fptr.attrib['FILEID']])
 
+    # second, we will link the physical page to the logical as indicated in the original work
+    # this information is stored in the following tag
+    #<mets:smLink xmlns:xlink="http://www.w3.org/1999/xlink" xlink:to="PHYS_0433" xlink:from="LOG_0015"/>
+    physID2logicalID = dict()
+    smLinks = root.findall(
+        ".//{http://www.loc.gov/METS/}smLink")
+    for l in smLinks:
+        physID2logicalID[l.attrib['{http://www.w3.org/1999/xlink}to']]=l.attrib['{http://www.w3.org/1999/xlink}from']
+        print(l.attrib)
 
+    print(physID2logicalID)
+    #sys.exit(0)
     # find the image with the title page (if available)
     titlePage = root.findall(".//{http://www.loc.gov/METS/}div[@TYPE='title_page']")
     titlePageLogID=""
@@ -123,6 +149,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
 
                     try:
                         currentPhysicalFile=fileID2physID[id]
+                        currentLogicalID=physID2logicalID[currentPhysicalFile]
                         if not currentPhysicalFile in alreadyDownloadedPhysID:
                             isTitlePage=False
                             # check if the current image is the title page
@@ -135,12 +162,23 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                                     print("Downloading to " + tiffDir)
 
                             if (not skipDownloads) or (forceTitlePageDownload and isTitlePage):
+                                cleanedPhysID=currentPhysicalFile.replace("PHYS_","").zfill(8)
                                 if not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
-                                    urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',currentPhysicalFile),tiffDir+"/"+currentPPN+".tif")
+                                    if verbose:
+                                        print("Trying to get image for phys ID "+currentPhysicalFile+" file from: "+tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID))
+                                    urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID),tiffDir+"/"+currentPPN+".tif")
                                 else:
                                     with open(tiffDir+"/"+currentPPN+".tif", 'wb') as f:
-                                         resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',currentPhysicalFile), verify=False)
-                                         f.write(resp.content)
+                                        if verbose:
+                                            print("Trying to get image for phys ID "+currentPhysicalFile+" file from: "+tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID))
+                                        resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID), verify=False)
+                                        f.write(resp.content)
+
+                                # save the logical ID for later usage
+                                with open(tiffDir + "/" + currentPPN + ".txt", 'w') as f:
+                                    f.write(currentLogicalID+"\n")
+
+
                                 masterTIFFpaths.append(tiffDir+"/"+currentPPN+".tif")
                                 # open the freshly download TIFF and convert it to the illustration export file format
                                 img = Image.open(tiffDir + "/" + currentPPN + ".tif")
@@ -278,9 +316,9 @@ if __name__ == "__main__":
     # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
     # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
-    deleteMasterTIFFs=True
+    deleteMasterTIFFs=False
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
-    skipDownloads=True
+    skipDownloads=False
     # overrides skipDownloads to force the download of title pages (first pages will not be downloaded!)
     forceTitlePageDownload = True
     # enables verbose output during processing
@@ -319,28 +357,29 @@ if __name__ == "__main__":
     #     f.close()
 
     # a 120k element PPN list downloaded via OAI/PMH
-    debugLimit=100
-    i=0
-    with open("120k_ppn_list.csv") as f:
-         lines = f.readlines()
-         for line in lines:
-            ppns.append(line.replace("\n", "").replace("PPN",""))
-            i+=1
-            if i>=debugLimit:
-                break
-         f.close()
+    #debugLimit=100
+    #i=0
+    #with open("120k_ppn_list.csv") as f:
+    #     lines = f.readlines()
+    #     for line in lines:
+    #        ppns.append(line.replace("\n", "").replace("PPN",""))
+    #        i+=1
+    #        if i>=debugLimit:
+    #            break
+    #     f.close()
 
 
     # a PPN list with fulltexts
-    # with open('OCR-PPN-Liste.txt') as f:
-    #      lines = f.readlines()
-    #      lines.pop(0)
-    #      for line in lines:
-    #          line_split = line.split(' ')
-    #          ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
-    #          ppns.append(ppn_cleaned)
-    #
-    #      f.close()
+    #with open('OCR-PPN-Liste.txt') as f:
+    with open('OCR-PPN-Liste-10.txt') as f: # small debug list
+        lines = f.readlines()
+        lines.pop(0)
+        for line in lines:
+            line_split = line.split(' ')
+            ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
+            ppns.append(ppn_cleaned)
+    
+        f.close()
 
     # a PPN list containing the Wegehaupt Digital collection
     # with open("wegehaupt_digital.txt") as f:
@@ -349,11 +388,18 @@ if __name__ == "__main__":
     #          ppns.append(line.replace("\n",""))
     #      f.close()
 
+    # a PPN list of Orbis pictus
+    #ppns.append("PPN745459102")
+    #ppns.append("770159389")
+    #ppns.append("PPN770184375")
+
     print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
     end = len(ppns)
     # in case of a prior abort of the script, try to resume from the last known state
     if os.path.isfile(logFileName):
+        print("\nATTENTION! Log file found under %s. The script will try to continue processing. \nIf you want to restart, please remove the log file. \nThe script will continue in 15 seconds..."%logFileName)
+        sleep(15)
         with open(logFileName, 'r') as log_file:
             log_entries = log_file.readlines()
             start = len(log_entries)
@@ -381,7 +427,8 @@ if __name__ == "__main__":
             log_file.write(current_time + " " + ppn + " (Number: %d)" % (i) + "\n")
 
         if addPPNPrefix:
-            ppn="PPN"+ppn
+            if not ppn.startswith("PPN"):
+                ppn="PPN"+ppn
 
         if not os.path.exists(sbbPrefix+"/"):
             if verbose:
