@@ -23,6 +23,9 @@ import zipfile
 from time import sleep
 
 import nltk as nltk
+from flair.data import Sentence
+from flair.models import SequenceTagger
+
 
 # enables verbose output during processing
 verbose = False
@@ -43,6 +46,9 @@ tempDownloadPrefix = "fulltext_download/"
 # True if ALTO download should be resumed
 resumeAltoDownloads=True
 
+# use flair NLP, recommended with available CUDA GPU
+useFlairNLP=False
+
 # error log file name
 errorLogFileName = "fulltext_statistics_error.log"
 
@@ -51,6 +57,7 @@ PARSING_ERROR=1
 EMPTY_TEXT=2
 NO_ALTO=3
 NO_ERROR=-1
+
 
 def errorCodeAsText(errorCode):
     if errorCode==PARSING_ERROR:
@@ -148,9 +155,23 @@ def creatStatisticFiles(statFilePath, resultTxt):
     statFile.write(fTxt)
     statFile.close()
 
+def createNERFiles(statFilePath, resultTxt, tagger):
+    if verbose:
+        print("\tCreating named entity recognized file at: "+statFilePath)
+    statFile = open(statFilePath, "w")
+
+    sentence = Sentence(resultTxt)
+    # predict NER tags
+    tagger.predict(sentence)
+
+    statFile.write(sentence.to_tagged_string())
+    statFile.close()
+
 
 if __name__ == "__main__":
     onlineModePossible=False
+
+    startTime = str(datetime.now())
     if os.path.exists(oaiAnalyzerResultFile):
         onlineModePossible=True
     else:
@@ -191,6 +212,10 @@ if __name__ == "__main__":
 
 
         printLog("Found %i ALTO candidate files for further processing."%len(fulltextFilePaths))
+        
+        if useFlairNLP:
+            nerModel=SequenceTagger.load('ner')
+
         for ppn in dirsPerPPN:
             textPerPPN=""
             for file in dirsPerPPN[ppn]:
@@ -201,12 +226,15 @@ if __name__ == "__main__":
                     if resultTxt:
                         txtFilePath=file.replace(".xml", ".txt")
                         statFilePath=file.replace(".xml", "_stats.txt")
+                        nerFilePath=file.replace(".xml", "_ner.txt")
                         txtFile = open(txtFilePath, "w")
 
                         txtFile.write(resultTxt)
                         txtFile.close()
 
                         creatStatisticFiles(statFilePath,resultTxt)
+                        if useFlairNLP:
+                            createNERFiles(nerFilePath,resultTxt,nerModel)
                         textPerPPN+=resultTxt+"\n"
                 else:
                     if verbose:
@@ -217,6 +245,7 @@ if __name__ == "__main__":
             txtFile.close()
 
             creatStatisticFiles(sbbGetBasePath+ppn+"/fulltext_stats.txt",textPerPPN)
+            #createNERFiles
     else:
         # online mode relying on an Excel file placed at oaiAnalyzerResultFile
         printLog("Using online mode.")
@@ -319,4 +348,6 @@ if __name__ == "__main__":
 
      # finally, clean up
     errorFile.close()
+    endTime = str(datetime.now())
+    print("Started at:\t%s\nEnded at:\t%s" % (startTime, endTime))
     printLog("Done.")
