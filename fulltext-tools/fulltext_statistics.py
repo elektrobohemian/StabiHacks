@@ -21,7 +21,7 @@ import urllib.request
 from urllib.parse import urlparse
 import zipfile
 from time import sleep
-import json
+import jsonpickle
 
 
 import nltk as nltk
@@ -259,7 +259,7 @@ if __name__ == "__main__":
                             nerDetailFile.close()
 
                             nerDetailJSONFile=open(nerDetailJSONFilePath,"w")
-                            nerDetailJSONFile.write(json.dumps(r[1]))
+                            nerDetailJSONFile.write(jsonpickle.encode(r[1], unpicklable=False))
                             nerDetailJSONFile.close()
                         textPerPPN+=resultTxt+"\n"
                 else:
