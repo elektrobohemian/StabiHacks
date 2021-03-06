@@ -159,11 +159,13 @@ def createNERFiles(statFilePath, resultTxt, tagger):
     if verbose:
         print("\tCreating named entity recognized file at: "+statFilePath)
     statFile = open(statFilePath, "w")
-
-    sentence = Sentence(resultTxt)
-    # predict NER tags
-    tagger.predict(sentence)
-
+    try:
+        sentence = Sentence(resultTxt)
+        # predict NER tags
+        tagger.predict(sentence)
+    except RuntimeError as err:
+        print("Runtime error: {0}".format(err))
+        print("Failed at: "+statFilePath) 
     statFile.write(sentence.to_tagged_string())
     statFile.close()
 
