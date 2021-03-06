@@ -25,7 +25,7 @@ from time import sleep
 import nltk as nltk
 from flair.data import Sentence
 from flair.models import SequenceTagger
-
+import torch
 
 # enables verbose output during processing
 verbose = False
