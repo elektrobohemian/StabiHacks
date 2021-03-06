@@ -21,6 +21,8 @@ import urllib.request
 from urllib.parse import urlparse
 import zipfile
 from time import sleep
+import json
+
 
 import nltk as nltk
 from flair.data import Sentence
@@ -224,7 +226,7 @@ if __name__ == "__main__":
         printLog("Found %i ALTO candidate files for further processing."%len(fulltextFilePaths))
         
         if useFlairNLP:
-            nerModel=SequenceTagger.load('ner')
+            nerModel=SequenceTagger.load('ner-multi')
 
         for ppn in dirsPerPPN:
             textPerPPN=""
@@ -239,6 +241,8 @@ if __name__ == "__main__":
                         txtFilePath=file.replace(".xml", ".txt")
                         statFilePath=file.replace(".xml", "_stats.txt")
                         nerFilePath=file.replace(".xml", "_ner.txt")
+                        nerDetailFilePath=file.replace(".xml", "_ner_details.txt")
+                        nerDetailJSONFilePath=file.replace(".xml", "_ner_details.json")
                         txtFile = open(txtFilePath, "w")
 
                         txtFile.write(resultTxt)
@@ -249,6 +253,14 @@ if __name__ == "__main__":
                             r=createNERFiles(nerFilePath,resultTxt,nerModel)
                             nerTextPerPPN+=r[0]+"\n"
                             nerDicts.append(r[1])
+
+                            nerDetailFile=open(nerDetailFilePath,"w")
+                            nerDetailFile.write(str(r[1]))
+                            nerDetailFile.close()
+
+                            nerDetailJSONFile=open(nerDetailJSONFilePath,"w")
+                            nerDetailJSONFile.write(json.dumps(r[1]))
+                            nerDetailJSONFile.close()
                         textPerPPN+=resultTxt+"\n"
                 else:
                     if verbose:
