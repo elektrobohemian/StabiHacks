@@ -166,8 +166,12 @@ def createNERFiles(statFilePath, resultTxt, tagger):
     except RuntimeError as err:
         print("Runtime error: {0}".format(err))
         print("Failed at: "+statFilePath) 
-    statFile.write(sentence.to_tagged_string())
+    
+    taggedStr=sentence.to_tagged_string()
+    details=sentence.to_dict(tag_type='ner')
+    statFile.write(taggedStr)
     statFile.close()
+    return (taggedStr,details)
 
 
 if __name__ == "__main__":
@@ -224,6 +228,8 @@ if __name__ == "__main__":
 
         for ppn in dirsPerPPN:
             textPerPPN=""
+            nerTextPerPPN=""
+            nerDicts=[]
             for file in dirsPerPPN[ppn]:
                 r=parseALTO(file)
                 error=r[1]
@@ -240,7 +246,9 @@ if __name__ == "__main__":
 
                         creatStatisticFiles(statFilePath,resultTxt)
                         if useFlairNLP:
-                            createNERFiles(nerFilePath,resultTxt,nerModel)
+                            r=createNERFiles(nerFilePath,resultTxt,nerModel)
+                            nerTextPerPPN+=r[0]+"\n"
+                            nerDicts.append(r[1])
                         textPerPPN+=resultTxt+"\n"
                 else:
                     if verbose:
@@ -249,10 +257,16 @@ if __name__ == "__main__":
             txtFile=open(sbbGetBasePath+ppn+"/fulltext.txt","w")
             txtFile.write(textPerPPN)
             txtFile.close()
+            if useFlairNLP:
+                txtFile=open(sbbGetBasePath+ppn+"/fulltext_ner.txt","w")
+                txtFile.write(nerTextPerPPN)
+                txtFile.close()
+
+                txtFile=open(sbbGetBasePath+ppn+"/fulltext_ner_details.txt","w")
+                txtFile.write(str(nerDicts))
+                txtFile.close()
 
             creatStatisticFiles(sbbGetBasePath+ppn+"/fulltext_stats.txt",textPerPPN)
-            if useFlairNLP:
-                createNERFiles(sbbGetBasePath+ppn+"/fulltext_ner.txt",textPerPPN,nerModel)
     else:
         # online mode relying on an Excel file placed at oaiAnalyzerResultFile
         printLog("Using online mode.")
