@@ -47,7 +47,7 @@ tempDownloadPrefix = "fulltext_download/"
 resumeAltoDownloads=True
 
 # use flair NLP, recommended with available CUDA GPU
-useFlairNLP=False
+useFlairNLP=True
 
 # error log file name
 errorLogFileName = "fulltext_statistics_error.log"
@@ -180,6 +180,10 @@ if __name__ == "__main__":
 
     createSupplementaryDirectories()
 
+    if not torch.cuda.is_available():
+        print("WARNING: flair-based NLP is enabled but now GPU is available. This will slow down processing considerably! Processing will continue in 30 seconds.")
+        sleep(30)
+
     if onlineMode:
         print("WARNING: Operating in online mode. The script will not use local files. Processing will continue in 30 seconds.")
         sleep(30)
@@ -245,7 +249,8 @@ if __name__ == "__main__":
             txtFile.close()
 
             creatStatisticFiles(sbbGetBasePath+ppn+"/fulltext_stats.txt",textPerPPN)
-            #createNERFiles
+            if useFlairNLP:
+                createNERFiles(sbbGetBasePath+ppn+"/fulltext_ner.txt",textPerPPN,nerModel)
     else:
         # online mode relying on an Excel file placed at oaiAnalyzerResultFile
         printLog("Using online mode.")
