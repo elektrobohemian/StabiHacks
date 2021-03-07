@@ -350,7 +350,11 @@ if __name__ == "__main__":
     startTime = str(datetime.now())
 
     # a PPN list for testing purposes (some with OCR)
-    with open("test_ppn_list.txt") as f:
+    #with open("test_ppn_list.txt") as f:
+    # Leske, Marie: llustrirtes Spielbuch für Mädchen : , Spiele und Beschäftigungen für Körper und >
+    with open("leske_ill_spielbuch_maedchen.txt") as f:
+    # various illustrated children books
+    #with open("diverse_ill_spielbuch.txt") as f:
         lines = f.readlines()
         for line in lines:
            ppns.append(line.replace("\n", ""))
