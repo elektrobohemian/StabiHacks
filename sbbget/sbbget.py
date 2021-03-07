@@ -174,9 +174,9 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                                         resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID), verify=False)
                                         f.write(resp.content)
 
-                                # save the logical ID for later usage
+                                # save the logical and physical ID for later usage separated by space
                                 with open(tiffDir + "/" + currentPPN + ".txt", 'w') as f:
-                                    f.write(currentLogicalID+"\n")
+                                    f.write(currentLogicalID+" "+currentPhysicalFile+"\n")
 
 
                                 masterTIFFpaths.append(tiffDir+"/"+currentPPN+".tif")
@@ -350,11 +350,11 @@ if __name__ == "__main__":
     startTime = str(datetime.now())
 
     # a PPN list for testing purposes (some with OCR)
-    #with open("test_ppn_list.txt") as f:
-    #     lines = f.readlines()
-    #     for line in lines:
-    #        ppns.append(line.replace("\n", ""))
-    #     f.close()
+    with open("test_ppn_list.txt") as f:
+        lines = f.readlines()
+        for line in lines:
+           ppns.append(line.replace("\n", ""))
+        f.close()
 
     # a 120k element PPN list downloaded via OAI/PMH
     #debugLimit=100
@@ -371,15 +371,15 @@ if __name__ == "__main__":
 
     # a PPN list with fulltexts
     #with open('OCR-PPN-Liste.txt') as f:
-    with open('OCR-PPN-Liste-10.txt') as f: # small debug list
-        lines = f.readlines()
-        lines.pop(0)
-        for line in lines:
-            line_split = line.split(' ')
-            ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
-            ppns.append(ppn_cleaned)
+    # with open('OCR-PPN-Liste-10.txt') as f: # small debug list
+    #     lines = f.readlines()
+    #     lines.pop(0)
+    #     for line in lines:
+    #         line_split = line.split(' ')
+    #         ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
+    #         ppns.append(ppn_cleaned)
     
-        f.close()
+    #     f.close()
 
     # a PPN list containing the Wegehaupt Digital collection
     # with open("wegehaupt_digital.txt") as f:
@@ -388,10 +388,10 @@ if __name__ == "__main__":
     #          ppns.append(line.replace("\n",""))
     #      f.close()
 
-    # a PPN list of Orbis pictus
-    #ppns.append("PPN745459102")
-    #ppns.append("770159389")
-    #ppns.append("PPN770184375")
+    # # a PPN list of Orbis pictus
+    # ppns.append("PPN745459102")
+    # ppns.append("770159389")
+    # ppns.append("PPN770184375")
 
     print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
