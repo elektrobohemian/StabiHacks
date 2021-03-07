@@ -50,6 +50,11 @@ resumeAltoDownloads=True
 
 # use flair NLP, recommended with available CUDA GPU
 useFlairNLP=True
+# the model to be used by flair, e.g.:
+# ner English
+# ner-multi English, German, Dutch and Spanish
+# de-ner German
+flairModel="de-ner"
 
 # error log file name
 errorLogFileName = "fulltext_statistics_error.log"
@@ -188,9 +193,11 @@ if __name__ == "__main__":
 
     createSupplementaryDirectories()
 
-    if not torch.cuda.is_available():
-        print("WARNING: flair-based NLP is enabled but now GPU is available. This will slow down processing considerably! Processing will continue in 30 seconds.")
-        sleep(30)
+    if useFlairNLP:
+        if not torch.cuda.is_available():
+            print("WARNING: flair-based NLP is enabled but now GPU is available. This will slow down processing considerably! Processing will continue in 30 seconds.")
+            sleep(30)
+        print("Using flair model: "+flairModel)
 
     if onlineMode:
         print("WARNING: Operating in online mode. The script will not use local files. Processing will continue in 30 seconds.")
@@ -226,7 +233,7 @@ if __name__ == "__main__":
         printLog("Found %i ALTO candidate files for further processing."%len(fulltextFilePaths))
         
         if useFlairNLP:
-            nerModel=SequenceTagger.load('ner-multi')
+            nerModel=SequenceTagger.load(flairModel)
 
         for ppn in dirsPerPPN:
             textPerPPN=""
@@ -275,7 +282,7 @@ if __name__ == "__main__":
                 txtFile.close()
 
                 txtFile=open(sbbGetBasePath+ppn+"/fulltext_ner_details.txt","w")
-                txtFile.write(str(nerDicts))
+                txtFile.write("Used model: "+flairModel+"\n"+str(nerDicts))
                 txtFile.close()
 
             creatStatisticFiles(sbbGetBasePath+ppn+"/fulltext_stats.txt",textPerPPN)
