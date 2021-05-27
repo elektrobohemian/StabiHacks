@@ -297,7 +297,7 @@ if __name__ == "__main__":
     # STANDARD file download settings (will download images and fulltexts): retrievalScope=['TIFF','FULLTEXT'] 
     # please not the the the retrieval scope overrides all of the following settings.
     # if set to 'FULLTEXT', no images will be downloaded even if forceTitlePageDownload etc. is set.
-    retrievalScope=['FULLTEXT']
+    retrievalScope=['TIFF','FULLTEXT']
     # TODO: per Schalter steuern, default: FULLTEXT und PRESENTATION
     # <mets:fileGrp USE="THUMBS"
     # <mets:fileGrp USE="DEFAULT">
@@ -319,7 +319,7 @@ if __name__ == "__main__":
     # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
     # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
-    deleteMasterTIFFs=True
+    deleteMasterTIFFs=False
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
     skipDownloads=False
     # overrides skipDownloads to force the download of title pages (first pages will not be downloaded!)
@@ -378,7 +378,7 @@ if __name__ == "__main__":
 
     # a PPN list with fulltexts
     with open('OCR-PPN-Liste.txt') as f:
-     with open('OCR-PPN-Liste-10.txt') as f: # small debug list
+    # with open('OCR-PPN-Liste-10.txt') as f: # small debug list
          lines = f.readlines()
          lines.pop(0)
          for line in lines:
