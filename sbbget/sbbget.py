@@ -65,14 +65,6 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             resp = requests.get(currentDownloadURL, verify=False)
             f.write(resp.content)
 
-    # STANDARD file download settings
-    retrievalScope=['TIFF','FULLTEXT']
-    # TODO: per Schalter steuern, default: FULLTEXT und PRESENTATION
-    # <mets:fileGrp USE="THUMBS"
-    # <mets:fileGrp USE="DEFAULT">
-    # <mets:fileGrp USE="FULLTEXT">
-    # <mets:fileGrp USE="PRESENTATION">
-
     # parse the METS/MODS file
     tree = ET.parse(metsModsPath)
     root = tree.getroot()
@@ -301,8 +293,17 @@ if __name__ == "__main__":
     downloadPathPrefix="."
     # in case the PPN list contains PPNs without "PPN" prefix, it will be added
     addPPNPrefix=True
+    
+    # STANDARD file download settings (will download images and fulltexts): retrievalScope=['TIFF','FULLTEXT'] 
+    retrievalScope=['FULLTEXT']
+    # TODO: per Schalter steuern, default: FULLTEXT und PRESENTATION
+    # <mets:fileGrp USE="THUMBS"
+    # <mets:fileGrp USE="DEFAULT">
+    # <mets:fileGrp USE="FULLTEXT">
+    # <mets:fileGrp USE="PRESENTATION">
+    
     # should illustration, found by the OCR, be extracted?
-    extractIllustrations=True
+    extractIllustrations=False
     # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
     illustrationExportFileType= ".jpg"
     # (recommended setting) create .tar files from the extracted illustrations and delete extracted illustrations afterwards
@@ -316,7 +317,7 @@ if __name__ == "__main__":
     # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders=False
     # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
-    deleteMasterTIFFs=False
+    deleteMasterTIFFs=True
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
     skipDownloads=False
     # overrides skipDownloads to force the download of title pages (first pages will not be downloaded!)
@@ -352,13 +353,13 @@ if __name__ == "__main__":
     # a PPN list for testing purposes (some with OCR)
     #with open("test_ppn_list.txt") as f:
     # Leske, Marie: llustrirtes Spielbuch für Mädchen : , Spiele und Beschäftigungen für Körper und >
-    with open("leske_ill_spielbuch_maedchen.txt") as f:
+    #with open("leske_ill_spielbuch_maedchen.txt") as f:
     # various illustrated children books
     #with open("diverse_ill_spielbuch.txt") as f:
-        lines = f.readlines()
-        for line in lines:
-           ppns.append(line.replace("\n", ""))
-        f.close()
+    #    lines = f.readlines()
+    #    for line in lines:
+    #       ppns.append(line.replace("\n", ""))
+    #    f.close()
 
     # a 120k element PPN list downloaded via OAI/PMH
     #debugLimit=100
@@ -374,16 +375,16 @@ if __name__ == "__main__":
 
 
     # a PPN list with fulltexts
-    #with open('OCR-PPN-Liste.txt') as f:
-    # with open('OCR-PPN-Liste-10.txt') as f: # small debug list
-    #     lines = f.readlines()
-    #     lines.pop(0)
-    #     for line in lines:
-    #         line_split = line.split(' ')
-    #         ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
-    #         ppns.append(ppn_cleaned)
+    with open('OCR-PPN-Liste.txt') as f:
+     with open('OCR-PPN-Liste-10.txt') as f: # small debug list
+         lines = f.readlines()
+         lines.pop(0)
+         for line in lines:
+             line_split = line.split(' ')
+             ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
+             ppns.append(ppn_cleaned)
     
-    #     f.close()
+         f.close()
 
     # a PPN list containing the Wegehaupt Digital collection
     # with open("wegehaupt_digital.txt") as f:
