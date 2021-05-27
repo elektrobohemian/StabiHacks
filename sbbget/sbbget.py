@@ -295,6 +295,8 @@ if __name__ == "__main__":
     addPPNPrefix=True
     
     # STANDARD file download settings (will download images and fulltexts): retrievalScope=['TIFF','FULLTEXT'] 
+    # please not the the the retrieval scope overrides all of the following settings.
+    # if set to 'FULLTEXT', no images will be downloaded even if forceTitlePageDownload etc. is set.
     retrievalScope=['FULLTEXT']
     # TODO: per Schalter steuern, default: FULLTEXT und PRESENTATION
     # <mets:fileGrp USE="THUMBS"
