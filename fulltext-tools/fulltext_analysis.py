@@ -33,6 +33,7 @@ import torch
 verbose = False
 # path to the sbbget temporary result files, e.g. "../sbbget/sbbget_downloads/download_temp" (the base path under which ALTO files are stored)
 sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
+#sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
 # Berlin State Library internal setting
 runningFromWithinStabi = False
 # analysis path prefix
@@ -195,7 +196,7 @@ if __name__ == "__main__":
 
     if useFlairNLP:
         if not torch.cuda.is_available():
-            print("WARNING: flair-based NLP is enabled but now GPU is available. This will slow down processing considerably! Processing will continue in 30 seconds.")
+            print("WARNING: flair-based NLP is enabled but no GPU is available. This will slow down processing considerably! Processing will continue in 30 seconds.")
             sleep(30)
         print("Using flair model: "+flairModel)
 
