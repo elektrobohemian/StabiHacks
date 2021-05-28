@@ -33,7 +33,7 @@ import torch
 verbose = False
 # path to the sbbget temporary result files, e.g. "../sbbget/sbbget_downloads/download_temp" (the base path under which ALTO files are stored)
 sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
-#sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
+sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
 # Berlin State Library internal setting
 runningFromWithinStabi = False
 # analysis path prefix
@@ -230,17 +230,23 @@ if __name__ == "__main__":
                             fulltextFilePaths.append(os.path.join(dirpath, name))
                             dirsPerPPN[ppn].append(os.path.join(dirpath, name))
 
-
-        printLog("Found %i ALTO candidate files for further processing."%len(fulltextFilePaths))
+        totalFiles=len(fulltextFilePaths)
+        printLog("Found %i ALTO candidate files for further processing."%totalFiles)
         
         if useFlairNLP:
             nerModel=SequenceTagger.load(flairModel)
+            print("Flair model loaded.")
 
+        processCounter=0
         for ppn in dirsPerPPN:
             textPerPPN=""
             nerTextPerPPN=""
             nerDicts=[]
+            print("Processing PPN: "+ppn)
             for file in dirsPerPPN[ppn]:
+                processCounter+=1
+                print("\tProcessing file %i of %i (total files over all PPNs)"%(processCounter,totalFiles))
+
                 r=parseALTO(file)
                 error=r[1]
                 if(error<0):

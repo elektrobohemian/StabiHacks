@@ -24,6 +24,7 @@ The scripts work together as illustrated below:
 
 ## Fulltext Analysis
 * a [Python script](fulltext-tools/fulltext_analysis.py) that retrieves all fulltexts from a SBBget created download directory and converts all files to raw text files
+* the script works best with Python 3.6 (at least under MacOS)
 * additionally, the script runs a NER on all created raw text files and saves the results, the NER is based on [flair](https://github.com/flairNLP)
 * alternatively the script can operate on the result file created by OAI-Analyzer and download ALTO files directly, from this perspective it serves as a Stabi fulltext corpus builder
 * the script is based on [NLTK](http://www.nltk.org) which needs additional installation steps, i.e.:
