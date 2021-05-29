@@ -47,6 +47,7 @@ bsp
 bzw
 d.h
 da
+daß
 dabei
 dafür
 daher
