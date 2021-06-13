@@ -25,13 +25,15 @@ errorLogFileName="./addFirstPages_error.log"
 startTime = str(datetime.now())
 
 ppns=[]
-titlePagesDirectory="C:\david.local\__datasets\\titlepages"
-downloadLink="https://content.staatsbibliothek-berlin.de/dc/@PPN@-00000001/full/full/0/default.jpg"
+titlePagesDirectory="/Users/david/temp/tpage_downloads/"
+# old link
+# downloadLink="https://content.staatsbibliothek-berlin.de/dc/@PPN@-00000001/full/full/0/default.jpg"
+downloadLink="https://content.staatsbibliothek-berlin.de/dms/%PPN%/800/0/00000001.tif?original=true"
 
-with open("ppn_list_146000.csv") as f:
+with open("120k_ppn_list_df4.csv") as f:
     lines = f.readlines()
     for line in lines:
-        ppns.append(line.replace("\n", "").replace("PPN", ""))
+        ppns.append(line.replace("\n", ""))
     f.close()
 
 errorFile = open(errorLogFileName, "w")
@@ -47,7 +49,8 @@ for ppn in ppns:
             if not os.path.exists(downloadedFile):
                 with open(downloadedFile, 'wb') as f:
                     resp = requests.get(
-                        downloadLink.replace('@PPN@', ppn),verify=False)
+                        downloadLink.replace('%PPN%', ppn))
+                    print(downloadLink.replace('%PPN%', ppn))
                     f.write(resp.content)
                 # quick'n'dirty fix, a 34 byte file is an error
                 statinfo = os.stat(downloadedFile)
