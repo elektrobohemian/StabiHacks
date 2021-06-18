@@ -252,7 +252,7 @@ if __name__ == "__main__":
                 if(error<0):
                     resultTxt=r[0]
                     if resultTxt:
-                        txtFilePath=file.replace(".xml", ".txt")
+                        txtFilePath=file.replace(".xml", "_raw.txt")
                         statFilePath=file.replace(".xml", "_stats.txt")
                         nerFilePath=file.replace(".xml", "_ner.txt")
                         nerDetailFilePath=file.replace(".xml", "_ner_details.txt")
