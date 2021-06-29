@@ -17,6 +17,10 @@ The scripts work together as illustrated below:
     * extracted images are stored at: sbbget_downloads/extracted_images/<PPN>
     * METS/MODS files are stored at: sbbget_downloads/download_temp/<PPN>/__metsmods/
 
+### Sample Data
+
+* the script comes with some sample collection that are described [here](ppn_lists/README.md)
+
 
 ## OAI-Analyzer
 * a [Python script](oai-analyzer/oai-analyzer.py) that downloads METS/MODS files via OAI-PMH and analyzes them
