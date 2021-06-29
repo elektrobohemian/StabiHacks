@@ -352,48 +352,18 @@ if __name__ == "__main__":
 
     startTime = str(datetime.now())
 
-    # a PPN list for testing purposes (some with OCR)
-    #with open("test_ppn_list.txt") as f:
-    # Leske, Marie: llustrirtes Spielbuch für Mädchen : , Spiele und Beschäftigungen für Körper und >
-    #with open("leske_ill_spielbuch_maedchen.txt") as f:
-    # various illustrated children books
-    #with open("diverse_ill_spielbuch.txt") as f:
-    #    lines = f.readlines()
-    #    for line in lines:
-    #       ppns.append(line.replace("\n", ""))
-    #    f.close()
-
     # a 120k element PPN list downloaded via OAI/PMH
-    #debugLimit=100
-    #i=0
-    #with open("120k_ppn_list.csv") as f:
-    #     lines = f.readlines()
-    #     for line in lines:
-    #        ppns.append(line.replace("\n", "").replace("PPN",""))
-    #        i+=1
-    #        if i>=debugLimit:
-    #            break
-    #     f.close()
-
-
-    # a PPN list with fulltexts
-    with open('OCR-PPN-Liste.txt') as f:
-    # with open('OCR-PPN-Liste-10.txt') as f: # small debug list
-         lines = f.readlines()
-         lines.pop(0)
-         for line in lines:
-             line_split = line.split(' ')
-             ppn_cleaned = line_split[len(line_split) - 1].rstrip().replace('PPN', '')
-             ppns.append(ppn_cleaned)
-    
-         f.close()
-
-    # a PPN list containing the Wegehaupt Digital collection
-    # with open("wegehaupt_digital.txt") as f:
-    #      lines = f.readlines()
-    #      for line in lines:
-    #          ppns.append(line.replace("\n",""))
-    #      f.close()
+    # set a debug download limit for testing
+    #debugLimit=10
+    i=0
+    with open("../ppn_lists/120k_ppn_list.csv") as f:
+        lines = f.readlines()
+        for line in lines:
+           ppns.append(line.replace("\n", "").replace("PPN",""))
+           i+=1
+           if i>=debugLimit:
+               break
+        f.close()
 
     # # a PPN list of Orbis pictus
     # ppns.append("PPN745459102")
