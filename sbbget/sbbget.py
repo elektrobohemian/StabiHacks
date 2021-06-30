@@ -354,7 +354,7 @@ if __name__ == "__main__":
 
     # a 120k element PPN list downloaded via OAI/PMH
     # set a debug download limit for testing
-    #debugLimit=10
+    debugLimit=3
     i=0
     with open("../ppn_lists/120k_ppn_list.csv") as f:
         lines = f.readlines()
