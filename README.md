@@ -23,8 +23,8 @@ The scripts work together as illustrated below:
 
 
 ## OAI-Analyzer
-* a [Python script](oai-analyzer/oai-analyzer.py) that downloads METS/MODS files via OAI-PMH and analyzes them
-* the results of the analyses are saved locally for further processing in various formats, e.g. Excel, CSV, or sqlite
+* a [Python script](oai-analyzer/oai-analyzer.py) that downloads METS/MODS files and DC metadata via OAI-PMH and analyzes them, e.g., to save ALTO XML URLs for certain records or to save metadata such as language codes or authorships
+* the results of the analyses are saved locally for further processing in various formats, e.g. Excel and CSV
 
 ## Fulltext Analysis
 * a [Python script](fulltext-tools/fulltext_analysis.py) that retrieves all fulltexts from a SBBget created download directory and converts all files to raw text files
@@ -41,6 +41,10 @@ The scripts work together as illustrated below:
     ```
     * further information can be found an [online book](http://www.nltk.org/book) that also gives an introduction into natural language processing
 
+### Future Improvements
+
+* [ner_analysis](fulltext-tools/ner_analysis.py) is based on the results from [fulltext_analysis](fulltext-tools/fulltext_analysis.py) and creates graph data etc. 
+* this script is still under development
 ## Pica Plus
 
 * a [Python script](pica_plus/processPicaPlus.py) that parses files in the Pica+ format as provided by the [GBV](https://www.gbv.de)
