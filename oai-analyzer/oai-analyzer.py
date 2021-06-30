@@ -20,7 +20,6 @@ import os
 import pickle
 import urllib.request
 import xml.etree.ElementTree as ET
-import sqlite3
 # OAI-PMH client library
 from sickle import Sickle
 
@@ -37,9 +36,9 @@ import matplotlib.pyplot as plt
 # enables verbose output during processing
 verbose = True
 # override locally stored temporary files, re-download files etc.; should be True during first run
-forceOverride = False
+forceOverride = True
 # static URL pattern for Stabi's digitized collection downloads
-metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
+metaDataDownloadURLPrefix = "https://content.staatsbibliothek-berlin.de/dc/"
 # Berlin State Library internal setting
 runningFromWithinStabi = False
 # error log file name
@@ -56,8 +55,6 @@ ambiguousPPNFileName = analysisPrefix + "ppn_ambiguous_list.csv"
 keepMETSMODS=False
 # file path for metadata record pickle
 metadataRecordPicklePath = "save_120k_dc_all.pickle"
-# DB-related settings (only interpreted if useSQLDB is True
-useSQLDB=True
 # path to the DB file
 sqlDBPath=analysisPrefix+"oai-analyzer.db"
 
@@ -89,7 +86,7 @@ def downloadMETSMODS(currentPPN):
     :return: The path to the downloaded file.
     """
     # download the METS/MODS file first in order to find the associated documents
-    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
+    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN + ".mets.xml"
     metsModsPath = tempDownloadPrefix + currentPPN + ".xml"
     if runningFromWithinStabi:
         proxy = urllib.request.ProxyHandler({})
@@ -346,21 +343,23 @@ def createSupplementaryDirectories():
 
 if __name__ == "__main__":
     # connect to a metadata repository
-    sickle = Sickle('http://digital.staatsbibliothek-berlin.de/oai')
-    records = sickle.ListRecords(metadataPrefix='oai_dc', set='DC_all')
+    sickle = Sickle('https://oai.sbb.berlin/oai')
+    records = sickle.ListRecords(metadataPrefix='oai_dc', set='all')
 
     createSupplementaryDirectories()
 
     errorFile = open(errorLogFileName, "w")
     savedRecords = []
 
+    # maximum number of downloaded records
+    # 2:15 h for 100k
+    maxDocs = 1000  # 100 is just for testing, for more interesting results increase this value to 1000. ATTENTION! this will also take more time for reading data.
+
     if forceOverride:
         printLog("Starting OAI record download...")
         # initialize some variables for counting and saving the metadata records
         savedDocs = 0
-        # 2:15 h for 100k
-        maxDocs = 120000  # 100 is just for testing, for more interesting results increase this value to 1000. ATTENTION! this will also take more time for reading data.
-
+        
         # save the records locally as we don't want to have to rely on a connection to the OAI-PMH server all the time
         # iterate over all records until maxDocs is reached
         # ATTENTION! if you re-run this cell, the contents of the savedRecords array will be altered!
@@ -427,7 +426,7 @@ if __name__ == "__main__":
     if os.path.exists(analysisPrefix + "analyticaldf.xlsx"):
         forceOverridePossible=True
 
-    if forceOverride and forceOverridePossible:
+    if forceOverride:#and forceOverridePossible:
     #if True:
         printLog("Processing METS/MODS documents.")
         resultDFs=[]
@@ -463,9 +462,6 @@ if __name__ == "__main__":
         analyticalDF.to_csv(analysisPrefix + "analyticaldf.csv",sep=';',index=False)
         analyticalDF.to_excel(analysisPrefix + "analyticaldf.xlsx", index=False)
 
-        if useSQLDB:
-            conn=sqlite3.connect(sqlDBPath)
-            analyticalDF.to_sql("oai_results",conn,if_exists='replace')
     else:
         printLog("Read METS/MODS analysis table from: "+analysisPrefix + "analyticaldf.xlsx")
         analyticalDF=pd.read_excel(analysisPrefix + "analyticaldf.xlsx")
@@ -474,12 +470,11 @@ if __name__ == "__main__":
 
     ocrPPNs=[]
     # read in OCR'ed PPNs
-    with open('../_datasets/ocr_ppn_list.txt') as f:
+    with open('../ppn_lists/media_with_ocr.csv') as f:
         lines = f.readlines()
-        lines.pop(0)
         for line in lines:
             line_split = line.split(' ')
-            ppn_cleaned = "PPN"+line_split[len(line_split) - 1].rstrip()
+            ppn_cleaned = line_split[len(line_split) - 1].rstrip()
             ocrPPNs.append(ppn_cleaned)
     f.close()
 
