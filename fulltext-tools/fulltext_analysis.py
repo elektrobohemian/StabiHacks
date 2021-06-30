@@ -33,7 +33,7 @@ import torch
 verbose = False
 # path to the sbbget temporary result files, e.g. "../sbbget/sbbget_downloads/download_temp" (the base path under which ALTO files are stored)
 sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
-sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
+#sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
 # Berlin State Library internal setting
 runningFromWithinStabi = False
 # analysis path prefix
@@ -187,10 +187,11 @@ if __name__ == "__main__":
 
     startTime = str(datetime.now())
     if os.path.exists(oaiAnalyzerResultFile):
+        printLog("Online mode not possible due to missing OAI-Analyzer file at: "+oaiAnalyzerResultFile)
         onlineModePossible=True
     else:
         printLog("Could not find %s as input for online mode. Application will exit."%oaiAnalyzerResultFile)
-        raise SystemExit
+        onlineModePossible=False
 
     createSupplementaryDirectories()
 
@@ -209,7 +210,8 @@ if __name__ == "__main__":
     # open error log
     errorFile = open(errorLogFileName, "w")
 
-    if (not onlineMode) and onlineModePossible:
+    if (not onlineMode): #and onlineModePossible:
+        printLog("Using offline mode.")
         fulltextFilePaths = []
         # check all subdirectories startings with PPN as each PPN stands for a different medium
         dirsPerPPN = dict()

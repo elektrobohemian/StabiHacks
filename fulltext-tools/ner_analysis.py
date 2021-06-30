@@ -30,7 +30,7 @@ import networkx as nx
 # enables verbose output during processing
 verbose = True
 # path to the sbbget temporary result files, e.g. "../sbbget/sbbget_downloads/download_temp" (the base path under which ALTO files are stored)
-sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
+sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
 # path of the analysis results
 analysisPath="./analysis/"
 # path to the stopword list
