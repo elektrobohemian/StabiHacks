@@ -305,7 +305,7 @@ if __name__ == "__main__":
     # <mets:fileGrp USE="PRESENTATION">
     
     # should illustration, found by the OCR, be extracted?
-    extractIllustrations=False
+    extractIllustrations=True
     # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
     illustrationExportFileType= ".jpg"
     # (recommended setting) create .tar files from the extracted illustrations and delete extracted illustrations afterwards
@@ -352,11 +352,12 @@ if __name__ == "__main__":
 
     startTime = str(datetime.now())
 
-    # a 120k element PPN list downloaded via OAI/PMH
+    # for testing purposes we try a a collection of historical illustrated childrens' playbooks, some with OCR
+    # this will download and create approx. 5,97 GB of test data (when limited to a 5 file download)
     # set a debug download limit for testing
-    debugLimit=3
+    debugLimit=5
     i=0
-    with open("../ppn_lists/120k_ppn_list.csv") as f:
+    with open("../ppn_lists/diverse_ill_spielbuch.csv") as f:
         lines = f.readlines()
         for line in lines:
            ppns.append(line.replace("\n", "").replace("PPN",""))
