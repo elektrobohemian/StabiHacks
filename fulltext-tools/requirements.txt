@@ -1,6 +1,6 @@
 bokeh==2.3.2
 bpemb==0.3.3
-certifi==2021.5.30
+certifi==2022.12.7
 chardet==4.0.0
 click==8.0.1
 cloudpickle==1.6.0
