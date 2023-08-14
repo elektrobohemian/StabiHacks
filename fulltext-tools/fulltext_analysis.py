@@ -30,7 +30,7 @@ from flair.models import SequenceTagger
 import torch
 
 # enables verbose output during processing
-verbose = False
+verbose = True
 # path to the sbbget temporary result files, e.g. "../sbbget/sbbget_downloads/download_temp" (the base path under which ALTO files are stored)
 sbbGetBasePath="../sbbget/sbbget_downloads/download_temp/"
 #sbbGetBasePath="../sbbget/sbbget_downloads.div_spielebuecher/download_temp/"
@@ -247,7 +247,7 @@ if __name__ == "__main__":
             print("Processing PPN: "+ppn)
             for file in dirsPerPPN[ppn]:
                 processCounter+=1
-                print("\tProcessing file %i of %i (total files over all PPNs)"%(processCounter,totalFiles))
+                print("Processing file %i of %i (total files over all PPNs)"%(processCounter,totalFiles))
 
                 r=parseALTO(file)
                 error=r[1]

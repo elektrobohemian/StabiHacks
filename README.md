@@ -32,19 +32,24 @@ The scripts work together as illustrated below:
 
 ## Fulltext Analysis
 * a [Python script](fulltext-tools/fulltext_analysis.py) that retrieves all fulltexts from a SBBget created download directory and converts all files to raw text files
-* the script works best with Python 3.6 (at least under MacOS)
 * additionally, the script runs a NER on all created raw text files and saves the results, the NER is based on [flair](https://github.com/flairNLP)
+* for best (i.e. fast) results you should use a GPU but the script will also run on the CPU
 * alternatively the script can operate on the result file created by OAI-Analyzer and download ALTO files directly, from this perspective it serves as a Stabi fulltext corpus builder
+
+### First Run
+
 * the script is based on [NLTK](http://www.nltk.org) which needs additional installation steps, i.e.:
     * install NLTK in your Python environment
     * when running the script, Python will ask you to install additional NLTK packages, the easiest way is to open a Python interpreter
-    and run to launch NLTK's graphical installer:
+    and run to launch NLTK's graphical installer or to download the needed data via:
     ```
     import nltk
-    nltk.download()
+    nltk.download('punkt')
     ```
+    * usually, NLTK will inform you about missing data if you forgot this step
     * further information can be found an [online book](http://www.nltk.org/book) that also gives an introduction into natural language processing
-
+* the script comes pre-configured and can be launched after [SBBget](sbbget/sbbget.py) has run (no additional parameters are needed, the script looks for the SBBget download folder at the standard location)
+* the script has been tested with Python 3.9 and 3.11 but should run with other versions as well
 ### Future Improvements
 
 * [ner_analysis](fulltext-tools/ner_analysis.py) is based on the results from [fulltext_analysis](fulltext-tools/fulltext_analysis.py) and creates graph data etc. 
