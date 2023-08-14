@@ -352,12 +352,12 @@ if __name__ == "__main__":
 
     startTime = str(datetime.now())
 
-    # for testing purposes we try a a collection of historical illustrated childrens' playbooks, some with OCR
-    # this will download and create approx. 5,97 GB of test data (when limited to a 5 file download)
+    # for testing purposes we try to download one historical illustrated childrens' playbook with OCR
+    # this will download and create approx.  1.98 GB of test data
     # set a debug download limit for testing
     debugLimit=5
     i=0
-    with open("../ppn_lists/diverse_ill_spielbuch.csv") as f:
+    with open("../ppn_lists/demo_document.csv") as f:
         lines = f.readlines()
         for line in lines:
            ppns.append(line.replace("\n", "").replace("PPN",""))

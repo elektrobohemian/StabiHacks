@@ -17,6 +17,10 @@ The scripts work together as illustrated below:
     * extracted images are stored at: sbbget_downloads/extracted_images/<PPN>
     * METS/MODS files are stored at: sbbget_downloads/download_temp/<PPN>/__metsmods/
 
+### First Run
+* the script comes pre-configured and tries to download an existing book from the Berlin State Library if run directly (no parameters needed)
+* the script has been tested with Python 3.9 and 3.11 but should run with other versions as well
+
 ### Sample Data
 
 * the script comes with some sample collection that are described [here](ppn_lists/README.md)
