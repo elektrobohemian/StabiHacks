@@ -24,6 +24,7 @@ from datetime import datetime
 import sys
 import requests
 import tarfile as TAR
+import yaml
 
 
 def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
@@ -290,58 +291,31 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     return pathToTitlePage
 
 if __name__ == "__main__":
-    downloadPathPrefix="."
-    # in case the PPN list contains PPNs without "PPN" prefix, it will be added
-    addPPNPrefix=True
-    
-    # STANDARD file download settings (will download images and fulltexts): retrievalScope=['TIFF','FULLTEXT'] 
-    # please not the the the retrieval scope overrides all of the following settings.
-    # if set to 'FULLTEXT', no images will be downloaded even if forceTitlePageDownload etc. is set.
-    retrievalScope=['TIFF','FULLTEXT']
-    # TODO: per Schalter steuern, default: FULLTEXT und PRESENTATION
-    # <mets:fileGrp USE="THUMBS"
-    # <mets:fileGrp USE="DEFAULT">
-    # <mets:fileGrp USE="FULLTEXT">
-    # <mets:fileGrp USE="PRESENTATION">
-    
-    # should illustration, found by the OCR, be extracted?
-    extractIllustrations=True
-    # determines file format for extracted images, if you want to keep max. quality use ".tif" instead
-    illustrationExportFileType= ".jpg"
-    # (recommended setting) create .tar files from the extracted illustrations and delete extracted illustrations afterwards
-    # facilitating distribution as a much fewer files will be created. however, this will slow down processing because of
-    # the packing overhead.
-    createTarBallOfExtractedIllustrations=True
-    # store title page thumbnails separately? (will be saved in illustrationExportFileType format) works only if skipDownloads=False or forceTitlePageDownload=True
-    storeExtraTitlePageThumbnails=True
-    # the maximum dimensions ot the thumbnail as a tuple (<width,height>) (aspect ratio remains intact)
-    titlePageThumbnailSize=(512,512)
-    # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
-    deleteTempFolders=False
-    # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
-    deleteMasterTIFFs=False
-    # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
-    skipDownloads=False
-    # overrides skipDownloads to force the download of title pages (first pages will not be downloaded!)
-    forceTitlePageDownload = True
-    # enables verbose output during processing
-    verbose=True
-    # determines which ALTO elements should be extracted
-    consideredAltoElements=['{http://www.loc.gov/standards/alto/ns-v2#}Illustration']#,'{http://www.loc.gov/standards/alto/ns-v2#}GraphicalElement']
+    # load configuration from 'config.yaml'
+    # all parameters are documented in 'config.yaml'
+    with open('config.yaml', 'r') as file:
+        cfg = yaml.safe_load(file)
 
-    # setting this variable to true will disable SSL certificate verification - USE AT YOUR OWN RISK!
-    allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=False
-    # Berlin State Library internal setting
-    runningFromWithinStabi=False
-    # Stabi internal setup variants, may vary depending on the sub-net of the machine
-    # dev Windows: allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=True   runningFromWithinStabi=True
-    # dev Linux:   allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=False   runningFromWithinStabi=True
+    addPPNPrefix=cfg['sbbget']['addPPNPrefix']
+    retrievalScope=cfg['sbbget']['retrievalScope']
+    extractIllustrations=cfg['sbbget']['extractIllustrations']
+    illustrationExportFileType= cfg['sbbget']['illustrationExportFileType']
+    createTarBallOfExtractedIllustrations=cfg['sbbget']['createTarBallOfExtractedIllustrations']
+    storeExtraTitlePageThumbnails=cfg['sbbget']['storeExtraTitlePageThumbnails']
+    titlePageThumbnailSize=cfg['sbbget']['titlePageThumbnailSize']
+    deleteTempFolders=cfg['sbbget']['deleteTempFolders']
+    deleteMasterTIFFs=cfg['sbbget']['deleteMasterTIFFs']
+    skipDownloads=cfg['sbbget']['skipDownloads']
+    forceTitlePageDownload = cfg['sbbget']['forceTitlePageDownload']
+    verbose=cfg['sbbget']['verbose']
+    consideredAltoElements=cfg['sbbget']['consideredAltoElements']
+    allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=cfg['sbbget']['allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION']
+    runningFromWithinStabi=cfg['sbbget']['runningFromWithinStabi']
+    logFileName = cfg['sbbget']['logFileName']
+    errorLogFileName=cfg['sbbget']['errorLogFileName']
+    ppnListFile=cfg['sbbget']['ppnListFile']
+    # end of configuration
 
-    # path to the log file which also stores information if the script run has been canceled and it should be resumed (in case of a large amount of downloads)
-    # if you want to force new downloads, just delete this file
-    logFileName = 'ppn_log.log'
-    # error log file name
-    errorLogFileName="sbbget_error.log"
 
     ppns = []
     dimensions = []
@@ -352,12 +326,11 @@ if __name__ == "__main__":
 
     startTime = str(datetime.now())
 
-    # for testing purposes we try to download one historical illustrated childrens' playbook with OCR
-    # this will download and create approx.  1.98 GB of test data
+   
     # set a debug download limit for testing
     debugLimit=5
     i=0
-    with open("../ppn_lists/demo_document.csv") as f:
+    with open(ppnListFile) as f:
         lines = f.readlines()
         for line in lines:
            ppns.append(line.replace("\n", "").replace("PPN",""))
