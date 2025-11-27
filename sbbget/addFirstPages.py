@@ -1,4 +1,4 @@
-# Copyright 2019 David Zellhoefer
+# Copyright 2025 David Zellhoefer
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,25 @@
 
 import urllib.request
 import os
+import sys
 from datetime import datetime
 import requests
 from PIL import Image
+
+def printLog(text):
+    now=str(datetime.now())
+    print("["+now+"]\t"+text)
+    # forces to output the result of the print command immediately, see: http://stackoverflow.com/questions/230751/how-to-flush-output-of-python-print
+    sys.stdout.flush()
+
+# ---------------------------------------------
+#
+# Settings
+#
+# ---------------------------------------------
+
+# the CSV file containing the list of PPNs to download
+csvFileName="120k_ppn_list_df4.csv"
 
 # the maximum dimensions ot the thumbnail as a tuple (<width,height>) (aspect ratio remains intact)
 titlePageThumbnailSize=(512,512)
@@ -25,12 +41,21 @@ errorLogFileName="./addFirstPages_error.log"
 startTime = str(datetime.now())
 
 ppns=[]
-titlePagesDirectory="/Users/david/temp/tpage_downloads/"
+titlePagesDirectory="./tpage_downloads"
+# create title pages directory
+if not os.path.exists(titlePagesDirectory):
+    os.makedirs(titlePagesDirectory)
+
+# create temp directory
+if not os.path.exists("./temp"):
+    os.makedirs("./temp")
+
 # old link
 # downloadLink="https://content.staatsbibliothek-berlin.de/dc/@PPN@-00000001/full/full/0/default.jpg"
 downloadLink="https://content.staatsbibliothek-berlin.de/dms/%PPN%/800/0/00000001.tif?original=true"
 
-with open("120k_ppn_list_df4.csv") as f:
+printLog(f"Reading PPN list from CSV file '{csvFileName}'")
+with open(csvFileName) as f:
     lines = f.readlines()
     for line in lines:
         ppns.append(line.replace("\n", ""))
@@ -38,13 +63,14 @@ with open("120k_ppn_list_df4.csv") as f:
 
 errorFile = open(errorLogFileName, "w")
 
+printLog(f"Starting download of {len(ppns)} title pages...")
 missingCount=0
 for ppn in ppns:
-    if not os.path.exists(titlePagesDirectory+"/PPN"+ppn+".jpg"):
+    if not os.path.exists(titlePagesDirectory+"/"+ppn+".jpg"):
         #print("Missing PPN"+ppn)
         missingCount+=1
         try:
-            downloadedFile="./temp/PPN" + ppn + ".jpg"
+            downloadedFile=titlePagesDirectory+"/" + ppn + ".jpg"
             # skip already downloaded images
             if not os.path.exists(downloadedFile):
                 with open(downloadedFile, 'wb') as f:
@@ -69,5 +95,6 @@ for ppn in ppns:
 
 errorFile.close()
 endTime = str(datetime.now())
+printLog("Title page download completed.")
 print("Started at:\t%s\nEnded at:\t%s" % (startTime, endTime))
 print("Missing PPNs: %i"%missingCount)

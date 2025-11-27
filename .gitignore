@@ -120,3 +120,6 @@ temp*/
 tmp*/
 analysis*/
 lowLevelFeatures/
+
+# addFirstPages.py specifics
+tpage_downloads*/
