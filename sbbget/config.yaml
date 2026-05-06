@@ -7,7 +7,7 @@ sbbget:
     addPPNPrefix: True
     
     # STANDARD file download settings (will download images and fulltexts): retrievalScope=['TIFF','FULLTEXT'] 
-    # please not the the the retrieval scope overrides all of the following settings.
+    # please note that the the retrieval scope overrides all of the following settings.
     # if set to 'FULLTEXT', no images will be downloaded even if forceTitlePageDownload etc. is set.
     retrievalScope: ['TIFF','FULLTEXT']
     # TODO: add switch for the following types, default: FULLTEXT und PRESENTATION
