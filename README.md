@@ -30,6 +30,7 @@ The scripts work together as illustrated below:
 ### First Run
 * the script comes pre-configured and tries to download an existing book from the Berlin State Library if run directly (no parameters needed), simply run it by calling: ``python sbbget.py``
     * the downloaded book has 341 scanned pages, thus, the download and processing will take some time (some minutes) as you will obtain a digital copy of a German children's book - stricly for boys because that seemed to matter in ancient times ;-)
+      
     ![Titlepage "Großes Illustriertes Spielbuch für Knaben"](./img/_TITLE_PAGE.jpg)
     * if everything went well you should see an output similar to the one below:
     ```
