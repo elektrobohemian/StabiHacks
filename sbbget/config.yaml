@@ -2,6 +2,15 @@ sbbget:
     # for testing purposes we try to download one historical illustrated childrens' playbook with OCR
     # this will download and create approx.  1.98 GB of test data
     ppnListFile: "../ppn_lists/demo_document.csv"
+    # media with OCR (you will get an updated version of the dataset described here: https://zenodo.org/records/2602431)
+    #ppnListFile: "../ppn_lists/media_with_ocr.csv"
+    # 120k documents - the nuclear option requiring a lot of time and storage space
+    # ppnListFile: "../ppn_lists/120k_ppn_list.csv"
+
+    # maximum number of documents to download (set to -1 for no limit)
+    maxDownloadLimit: -1
+    # enables verbose output during processing (this will render the progress bar invisible)
+    verbose: False
 
     # in case the PPN list contains PPNs without "PPN" prefix, it will be added. if a PPN starts with PPN as prefix the prefix will not be added.
     addPPNPrefix: True
@@ -31,13 +40,12 @@ sbbget:
     # delete temporary files (will remove XML documents, OCR fulltexts and leave you alone with the extracted images
     deleteTempFolders: False
     # if True, downloaded full page TIFFs will be removed after illustration have been extracted (saves a lot of storage space)
-    deleteMasterTIFFs: False
+    deleteMasterTIFFs: True
     # handy if a certain file set has been downloaded before and processing has to be limited to post-processing only
     skipDownloads: False
     # overrides skipDownloads to force the download of title pages (first pages will not be downloaded!)
     forceTitlePageDownload :  True
-    # enables verbose output during processing
-    verbose: True
+    
     # determines which ALTO elements (coming from the OCR) should be extracted
     consideredAltoElements: ['{http://www.loc.gov/standards/alto/ns-v2#}Illustration']
     #,'{http://www.loc.gov/standards/alto/ns-v2#}GraphicalElement']

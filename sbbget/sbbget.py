@@ -1,4 +1,4 @@
-# Copyright 2021 David Zellhoefer
+# Copyright 2021-2026 David Zellhoefer
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@ import requests
 import tarfile as TAR
 import yaml
 
+# progress bar
+from tqdm import trange
+
 
 def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # static URL pattern for Stabi's digitized collection downloads
@@ -52,7 +55,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     # old version
     metsModsPath= metsModsDownloadPath+"/"+currentPPN+".xml"
     #metsModsPath= metsModsDownloadPath+"/"+currentPPN+".mets.xml"
-    print(metsModsPath)
+    #print(metsModsPath)
     if runningFromWithinStabi:
         proxy = urllib.request.ProxyHandler({})
         opener = urllib.request.build_opener(proxy)
@@ -86,9 +89,9 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
         ".//{http://www.loc.gov/METS/}smLink")
     for l in smLinks:
         physID2logicalID[l.attrib['{http://www.w3.org/1999/xlink}to']]=l.attrib['{http://www.w3.org/1999/xlink}from']
-        print(l.attrib)
+        #print(l.attrib)
 
-    print(physID2logicalID)
+    #print(physID2logicalID)
     #sys.exit(0)
     # find the image with the title page (if available)
     titlePage = root.findall(".//{http://www.loc.gov/METS/}div[@TYPE='title_page']")
@@ -149,10 +152,11 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                             if currentPhysicalFile==titlePagePhysID:
                                 isTitlePage=True
                             if verbose:
-                                if isTitlePage:
+                                if isTitlePage and verbose:
                                     print("Downloading to " + tiffDir+" (TITLE PAGE)")
                                 else:
-                                    print("Downloading to " + tiffDir)
+                                    if verbose:
+                                        print("Downloading to " + tiffDir)
 
                             if (not skipDownloads) or (forceTitlePageDownload and isTitlePage):
                                 cleanedPhysID=currentPhysicalFile.replace("PHYS_","").zfill(8)
@@ -223,14 +227,23 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     #illuID = 0
     if extractIllustrations and (not skipDownloads):
         if "PPN" not in saveDir:
-            saveDir = "./" + savePathPrefix + "/"+currentPPN+"/"
+            #saveDir = "./" + savePathPrefix + "/"+currentPPN+"/"
+            saveDir = "./" + savePathPrefix +"/"
+
         # create a .tar file for the extracted illustrations
         tarBallPath = saveDir + currentPPN + ".tar"
+        
+        #print(saveDir)
+
         tarBall = None
+        tarBallEmpty = True
         if createTarBallOfExtractedIllustrations:
             tarBall = TAR.open(tarBallPath, "w")
-
+            #print("Creating tarball for extracted illustrations at: "+tarBallPath)
+        
+        foundImagesToExtract=False
         for key in altoPaths:
+            foundImagesToExtract=False
             tiffDir=altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+altoPaths[key][1].replace(".","_")+"/"
             tiffDir="."+tiffDir[1:-1]
             if not os.path.exists(tiffDir):
@@ -247,7 +260,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                     if el.tag in consideredAltoElements:
                         illuID=el.attrib['ID']
                         #if verbose:
-                        #print("\tExtracting "+illuID)
+                        #    print("\tExtracting "+illuID)
                         h=int(el.attrib['HEIGHT'])
                         w=int(el.attrib['WIDTH'])
                         if h > 150 and w > 150:
@@ -266,17 +279,35 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                             # (left, upper, right, lower)-tuple.
                             img2 = img.crop((hpos, vpos, hpos+w, vpos+h))
 
-                            extractedIllustrationPath=saveDir + key.split("_")[1] + "_" +illuID + illustrationExportFileType
+                            extractName=key.split("_")[1] + "_" +illuID + illustrationExportFileType
+                            extractedIllustrationPath=saveDir + extractName
                             img2.save(extractedIllustrationPath)
+                            foundImagesToExtract=True
+
                             if createTarBallOfExtractedIllustrations:
-                                tarBall.add(extractedIllustrationPath)
+                                tarBall.add(extractedIllustrationPath,recursive=False,arcname=extractName)
+                                tarBallEmpty = False
                                 os.remove(extractedIllustrationPath)
 
                         else:
                             if verbose:
                                 print("Image is too small: processing skipped.")
+                
         if createTarBallOfExtractedIllustrations:
             tarBall.close()
+            if tarBallEmpty:
+                os.remove(tarBallPath)
+                if verbose:
+                    print("No illustrations extracted, tarball removed.")
+            else:
+                if verbose:
+                    print("Tarball created at: "+tarBallPath)
+        
+        if not foundImagesToExtract:
+            # TODO: remove empty folders if no illustrations have been extracted
+            os.rmdir(saveDir)
+            if verbose:
+                print("No illustrations found to extract.")
 
     if deleteMasterTIFFs:
         for masterTiff in masterTIFFpaths:
@@ -314,6 +345,7 @@ if __name__ == "__main__":
     logFileName = cfg['sbbget']['logFileName']
     errorLogFileName=cfg['sbbget']['errorLogFileName']
     ppnListFile=cfg['sbbget']['ppnListFile']
+    maxDownloadLimit=cfg['sbbget']['maxDownloadLimit']
     # end of configuration
 
 
@@ -328,14 +360,14 @@ if __name__ == "__main__":
 
    
     # set a debug download limit for testing
-    debugLimit=5
+    debugLimit=maxDownloadLimit
     i=0
     with open(ppnListFile) as f:
         lines = f.readlines()
         for line in lines:
            ppns.append(line.replace("\n", "").replace("PPN",""))
            i+=1
-           if i>=debugLimit:
+           if i>=debugLimit and maxDownloadLimit!=-1:
                break
         f.close()
 
@@ -347,6 +379,7 @@ if __name__ == "__main__":
     print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
     end = len(ppns)
+    
     # in case of a prior abort of the script, try to resume from the last known state
     if os.path.isfile(logFileName):
         print("\nATTENTION! Log file found under %s. The script will try to continue processing. \nIf you want to restart, please remove the log file. \nThe script will continue in 15 seconds..."%logFileName)
@@ -368,7 +401,10 @@ if __name__ == "__main__":
     errorFile = open(errorLogFileName, "w")
 
     titlePagePaths=[]
-    for i in range(start,end):
+    # setup progress bar
+    # pbar = tqdm(total=end)
+
+    for i in trange(start,end):
         sbbPrefix = "sbbget_downloads"
         downloadPathPrefix="download_temp"
         savePathPrefix="extracted_images"
@@ -423,6 +459,8 @@ if __name__ == "__main__":
         #debug
         #try:
         pathToTitlePage=downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
+        # pbar.update(1)
+
         if pathToTitlePage:
             titlePagePaths.append(pathToTitlePage)
         #except Exception as ex:
@@ -431,7 +469,8 @@ if __name__ == "__main__":
         #    errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + message + "\t" + downloadPathPrefix + "\t" + metsModsDownloadPath + "\n")
 
     errorFile.close()
-
+    #pbar.close()
+    
     # write out paths to title pages
     titlePagePathsFile = open("title_pages.txt", "w")
     for path in titlePagePaths:
