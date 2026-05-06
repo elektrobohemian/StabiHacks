@@ -17,13 +17,40 @@ The scripts work together as illustrated below:
     * extracted images are stored at: sbbget_downloads/extracted_images/<PPN>
     * METS/MODS files are stored at: sbbget_downloads/download_temp/<PPN>/__metsmods/
 
+### Setup
+
+* clone the repository: ``git clone https://github.com/elektrobohemian/StabiHacks.git``
+* navigate to the ``sbbget/`` subdirectory
+* setup a Python environment: ``python3 -m venv ./venv``
+* activate the environment: ``source ./venv/bin/activate.fish`` (skip ``.fish`` if you are not using the wonderful fish shell)
+* install the needed packages: ``pip install -r requirements.txt``
+
+* __OPTIONAL:__ the script can be configured by modifying the accompanying [YAML configuration file](sbbget/config.yaml), the shipped YAML comes with reasonable settings and the objective to get as much data as possible only removing the master TIFF images to save storage space
+
 ### First Run
-* the script comes pre-configured and tries to download an existing book from the Berlin State Library if run directly (no parameters needed)
-* the script has been tested with Python 3.9 and 3.11 but should run with other versions as well
+* the script comes pre-configured and tries to download an existing book from the Berlin State Library if run directly (no parameters needed), simply run it by calling: ``python sbbget.py``
+    * the downloaded book has 341 scanned pages, thus, the download and processing will take some time (some minutes) as you will obtain a digital copy of a German children's book - stricly for boys because that seemed to matter in ancient times ;-)
+    ![Titlepage "Großes Illustriertes Spielbuch für Knaben"](./img/_TITLE_PAGE.jpg)
+    * if everything went well you should see an output similar to the one below:
+    ```
+    Number of documents to be processed: 1
+    100%|████████| 1/1 [04:42<00:00, 282.02s/it]
 
-### Configuration
+    SUMMARY
+        Downloads (fulltexts, original digitizations etc.) were, e.g., stored at: sbbget_downloads/download_temp/PPN745182844
 
-* the script can be configured by modifying the accompanying [YAML configuration file](sbbget/config.yaml)
+        Extracted images were, e.g., stored at: sbbget_downloads/extracted_images/PPN745182844
+        
+        METS/MODS files were, e.g., stored at: sbbget_downloads/download_temp/PPN745182844/__metsmods/
+
+    Started at:     2026-05-06 16:34:35.363607
+    Ended at:       2026-05-06 16:39:17.388846
+    Done.
+    ``` 
+    
+* the script has been tested with Python 3.9, 3.11 and 3.14 but should run with other versions as well
+
+
 ### Sample Data
 
 * the script comes with some sample collection that are described [here](ppn_lists/README.md)
