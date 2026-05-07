@@ -30,42 +30,41 @@ import yaml
 from tqdm import trange
 
 
-def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
+def downloadData(currentPPN, downloadPathPrefix, metsModsDownloadPath):
     # static URL pattern for Stabi's digitized collection downloads
     # old version
-    #metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
-    metaDataDownloadURLPrefix ="https://content.staatsbibliothek-berlin.de/dc/"
+    # metaDataDownloadURLPrefix = "http://digital.staatsbibliothek-berlin.de/metsresolver/?PPN="
+    metaDataDownloadURLPrefix = "https://content.staatsbibliothek-berlin.de/dc/"
     # old
     tiffDownloadLink = "http://ngcs.staatsbibliothek-berlin.de/?action=metsImage&format=jpg&metsFile=@PPN@&divID=@PHYSID@&original=true"
-    
-    
-    tiffDownloadLink="https://content.staatsbibliothek-berlin.de/dms/@PPN@/800/0/@PHYSID@.tif?original=true"
 
-    saveDir=""
-    pathToTitlePage=""
+    tiffDownloadLink = "https://content.staatsbibliothek-berlin.de/dms/@PPN@/800/0/@PHYSID@.tif?original=true"
+
+    saveDir = ""
+    pathToTitlePage = ""
 
     # download the METS/MODS file first in order to find the associated documents
     #
     # old
     # currentDownloadURL = metaDataDownloadURLPrefix + currentPPN
-    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN+".mets.xml"
+    currentDownloadURL = metaDataDownloadURLPrefix + currentPPN + ".mets.xml"
     # debug
-    #print(currentDownloadURL)
+    # print(currentDownloadURL)
     # todo: error handling
     # old version
-    metsModsPath= metsModsDownloadPath+"/"+currentPPN+".xml"
-    #metsModsPath= metsModsDownloadPath+"/"+currentPPN+".mets.xml"
-    #print(metsModsPath)
+    metsModsPath = metsModsDownloadPath + "/" + currentPPN + ".xml"
+    # metsModsPath= metsModsDownloadPath+"/"+currentPPN+".mets.xml"
+    # print(metsModsPath)
     if runningFromWithinStabi:
         proxy = urllib.request.ProxyHandler({})
         opener = urllib.request.build_opener(proxy)
         urllib.request.install_opener(opener)
 
     if not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
-        urllib.request.urlretrieve(currentDownloadURL,metsModsPath)
+        urllib.request.urlretrieve(currentDownloadURL, metsModsPath)
     # daz: TODO JPG-Wandlung der Vollseiten-TIFFs automatisieren und dokumentieren
     else:
-        with open(metsModsPath, 'wb') as f:
+        with open(metsModsPath, "wb") as f:
             resp = requests.get(currentDownloadURL, verify=False)
             f.write(resp.content)
 
@@ -73,226 +72,329 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
     tree = ET.parse(metsModsPath)
     root = tree.getroot()
 
-    fileID2physID=dict()
+    fileID2physID = dict()
     # first, we have to build a dict mapping various IDs to physical pages
-    for div in root.iter('{http://www.loc.gov/METS/}div'):
-        for fptr in div.iter('{http://www.loc.gov/METS/}fptr'):
-            #print(fptr.tag,fptr.attrib)
-            fileID2physID[fptr.attrib['FILEID']]=div.attrib['ID']
-            #print(fptr.attrib['FILEID'],fileID2physID[fptr.attrib['FILEID']])
+    for div in root.iter("{http://www.loc.gov/METS/}div"):
+        for fptr in div.iter("{http://www.loc.gov/METS/}fptr"):
+            # print(fptr.tag,fptr.attrib)
+            fileID2physID[fptr.attrib["FILEID"]] = div.attrib["ID"]
+            # print(fptr.attrib['FILEID'],fileID2physID[fptr.attrib['FILEID']])
 
     # second, we will link the physical page to the logical as indicated in the original work
     # this information is stored in the following tag
-    #<mets:smLink xmlns:xlink="http://www.w3.org/1999/xlink" xlink:to="PHYS_0433" xlink:from="LOG_0015"/>
+    # <mets:smLink xmlns:xlink="http://www.w3.org/1999/xlink" xlink:to="PHYS_0433" xlink:from="LOG_0015"/>
     physID2logicalID = dict()
-    smLinks = root.findall(
-        ".//{http://www.loc.gov/METS/}smLink")
+    smLinks = root.findall(".//{http://www.loc.gov/METS/}smLink")
     for l in smLinks:
-        physID2logicalID[l.attrib['{http://www.w3.org/1999/xlink}to']]=l.attrib['{http://www.w3.org/1999/xlink}from']
-        #print(l.attrib)
+        physID2logicalID[l.attrib["{http://www.w3.org/1999/xlink}to"]] = l.attrib[
+            "{http://www.w3.org/1999/xlink}from"
+        ]
+        # print(l.attrib)
 
-    #print(physID2logicalID)
-    #sys.exit(0)
+    # print(physID2logicalID)
+    # sys.exit(0)
     # find the image with the title page (if available)
     titlePage = root.findall(".//{http://www.loc.gov/METS/}div[@TYPE='title_page']")
-    titlePageLogID=""
+    titlePageLogID = ""
     if titlePage:
-        titlePageLogID=titlePage[0].attrib['ID']
+        titlePageLogID = titlePage[0].attrib["ID"]
     else:
         if verbose and storeExtraTitlePageThumbnails:
             print("\tNo title page found. Using first image instead.")
     # if we have found a title page before, select the link to its physical page
-    physTitlePageNodes=root.findall(".//{http://www.loc.gov/METS/}smLink[@{http://www.w3.org/1999/xlink}from='"+titlePageLogID+"']")
-    titlePagePhysID=""
+    physTitlePageNodes = root.findall(
+        ".//{http://www.loc.gov/METS/}smLink[@{http://www.w3.org/1999/xlink}from='"
+        + titlePageLogID
+        + "']"
+    )
+    titlePagePhysID = ""
     if physTitlePageNodes:
-        titlePagePhysID=physTitlePageNodes[0].attrib['{http://www.w3.org/1999/xlink}to']
+        titlePagePhysID = physTitlePageNodes[0].attrib[
+            "{http://www.w3.org/1999/xlink}to"
+        ]
 
     # a list of downloaded TIFF files
-    alreadyDownloadedPhysID=[]
+    alreadyDownloadedPhysID = []
     # a dict of paths to ALTO fulltexts (id->download dir)
-    altoPaths=dict()
+    altoPaths = dict()
 
     # a list of downloaded image paths in order to remove them if needed (controled by deleteMasterTIFFs)
-    masterTIFFpaths=[]
+    masterTIFFpaths = []
 
     # we are only interested in fileGrp nodes below fileSec...
-    for fileSec in root.iter('{http://www.loc.gov/METS/}fileSec'):
-        for child in fileSec.iter('{http://www.loc.gov/METS/}fileGrp'):
-            currentUse=child.attrib['USE']
+    for fileSec in root.iter("{http://www.loc.gov/METS/}fileSec"):
+        for child in fileSec.iter("{http://www.loc.gov/METS/}fileGrp"):
+            currentUse = child.attrib["USE"]
 
-            firstFileNode=True
+            firstFileNode = True
             # which contains file nodes...
-            for fileNode in child.iter('{http://www.loc.gov/METS/}file'):
-            # embedding FLocat node pointing to the URLs of interest
-                id = fileNode.attrib['ID']
-                downloadDir=downloadPathPrefix + "/" + id
-                saveDir= savePathPrefix + "/" + id
+            for fileNode in child.iter("{http://www.loc.gov/METS/}file"):
+                # embedding FLocat node pointing to the URLs of interest
+                id = fileNode.attrib["ID"]
+                downloadDir = downloadPathPrefix + "/" + id
+                saveDir = savePathPrefix + "/" + id
                 # only create need sub directories
-                if currentUse in retrievalScope :
+                if currentUse in retrievalScope:
                     if not os.path.exists(downloadDir):
                         if verbose:
                             print(downloadDir)
                         os.mkdir(downloadDir)
 
-                if 'TIFF' in retrievalScope:
+                if "TIFF" in retrievalScope:
                     # try to download TIFF first
-                    downloadDir =  downloadPathPrefix + "/" + id
-                    saveDir =  savePathPrefix + "/"
-                    tiffDir=downloadDir.replace(currentUse,'TIFF')
+                    downloadDir = downloadPathPrefix + "/" + id
+                    saveDir = savePathPrefix + "/"
+                    tiffDir = downloadDir.replace(currentUse, "TIFF")
 
                     if not os.path.exists(tiffDir):
                         os.mkdir(tiffDir)
 
                     try:
-                        currentPhysicalFile=fileID2physID[id]
-                        currentLogicalID=physID2logicalID[currentPhysicalFile]
+                        currentPhysicalFile = fileID2physID[id]
+                        currentLogicalID = physID2logicalID[currentPhysicalFile]
                         if not currentPhysicalFile in alreadyDownloadedPhysID:
-                            isTitlePage=False
+                            isTitlePage = False
                             # check if the current image is the title page
-                            if currentPhysicalFile==titlePagePhysID:
-                                isTitlePage=True
+                            if currentPhysicalFile == titlePagePhysID:
+                                isTitlePage = True
                             if verbose:
                                 if isTitlePage and verbose:
-                                    print("Downloading to " + tiffDir+" (TITLE PAGE)")
+                                    print("Downloading to " + tiffDir + " (TITLE PAGE)")
                                 else:
                                     if verbose:
                                         print("Downloading to " + tiffDir)
 
-                            if (not skipDownloads) or (forceTitlePageDownload and isTitlePage):
-                                cleanedPhysID=currentPhysicalFile.replace("PHYS_","").zfill(8)
-                                if not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
+                            if (not skipDownloads) or (
+                                forceTitlePageDownload and isTitlePage
+                            ):
+                                cleanedPhysID = currentPhysicalFile.replace(
+                                    "PHYS_", ""
+                                ).zfill(8)
+                                if (
+                                    not allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION
+                                ):
                                     if verbose:
-                                        print("Trying to get image for phys ID "+currentPhysicalFile+" file from: "+tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID))
-                                    urllib.request.urlretrieve(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID),tiffDir+"/"+currentPPN+".tif")
+                                        print(
+                                            "Trying to get image for phys ID "
+                                            + currentPhysicalFile
+                                            + " file from: "
+                                            + tiffDownloadLink.replace(
+                                                "@PPN@", currentPPN
+                                            ).replace("@PHYSID@", cleanedPhysID)
+                                        )
+                                    urllib.request.urlretrieve(
+                                        tiffDownloadLink.replace(
+                                            "@PPN@", currentPPN
+                                        ).replace("@PHYSID@", cleanedPhysID),
+                                        tiffDir + "/" + currentPPN + ".tif",
+                                    )
                                 else:
-                                    with open(tiffDir+"/"+currentPPN+".tif", 'wb') as f:
+                                    with open(
+                                        tiffDir + "/" + currentPPN + ".tif", "wb"
+                                    ) as f:
                                         if verbose:
-                                            print("Trying to get image for phys ID "+currentPhysicalFile+" file from: "+tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID))
-                                        resp = requests.get(tiffDownloadLink.replace('@PPN@',currentPPN).replace('@PHYSID@',cleanedPhysID), verify=False)
+                                            print(
+                                                "Trying to get image for phys ID "
+                                                + currentPhysicalFile
+                                                + " file from: "
+                                                + tiffDownloadLink.replace(
+                                                    "@PPN@", currentPPN
+                                                ).replace("@PHYSID@", cleanedPhysID)
+                                            )
+                                        resp = requests.get(
+                                            tiffDownloadLink.replace(
+                                                "@PPN@", currentPPN
+                                            ).replace("@PHYSID@", cleanedPhysID),
+                                            verify=False,
+                                        )
                                         f.write(resp.content)
 
                                 # save the logical and physical ID for later usage separated by space
-                                with open(tiffDir + "/" + currentPPN + ".txt", 'w') as f:
-                                    f.write(currentLogicalID+" "+currentPhysicalFile+"\n")
+                                with open(
+                                    tiffDir + "/" + currentPPN + ".txt", "w"
+                                ) as f:
+                                    f.write(
+                                        currentLogicalID
+                                        + " "
+                                        + currentPhysicalFile
+                                        + "\n"
+                                    )
 
-
-                                masterTIFFpaths.append(tiffDir+"/"+currentPPN+".tif")
+                                masterTIFFpaths.append(
+                                    tiffDir + "/" + currentPPN + ".tif"
+                                )
                                 # open the freshly download TIFF and convert it to the illustration export file format
                                 img = Image.open(tiffDir + "/" + currentPPN + ".tif")
-                                img.save(tiffDir + "/" + currentPPN + illustrationExportFileType)
+                                img.save(
+                                    tiffDir
+                                    + "/"
+                                    + currentPPN
+                                    + illustrationExportFileType
+                                )
 
                                 # store the title page separately if desired
                                 if storeExtraTitlePageThumbnails:
                                     if isTitlePage:
                                         img.thumbnail(titlePageThumbnailSize)
-                                        pathToTitlePage=downloadPathPrefix+"/" +"_TITLE_PAGE"+ illustrationExportFileType
+                                        pathToTitlePage = (
+                                            downloadPathPrefix
+                                            + "/"
+                                            + "_TITLE_PAGE"
+                                            + illustrationExportFileType
+                                        )
                                         img.save(pathToTitlePage)
                                     else:
                                         # otherwise, take the first seen image as title page
                                         if firstFileNode:
                                             img.thumbnail(titlePageThumbnailSize)
-                                            pathToTitlePage = downloadPathPrefix + "/" + "_TITLE_PAGE" + illustrationExportFileType
+                                            pathToTitlePage = (
+                                                downloadPathPrefix
+                                                + "/"
+                                                + "_TITLE_PAGE"
+                                                + illustrationExportFileType
+                                            )
                                             img.save(pathToTitlePage)
                             alreadyDownloadedPhysID.append(currentPhysicalFile)
-                            firstFileNode=False
+                            firstFileNode = False
                     except urllib.error.URLError:
-                        print("Error downloading " + currentPPN+".tif")
+                        print("Error downloading " + currentPPN + ".tif")
 
-                if currentUse in retrievalScope : # e.g., TIFF or FULLTEXT
-                    for fLocat in fileNode.iter('{http://www.loc.gov/METS/}FLocat'):
-                        if (fLocat.attrib['LOCTYPE'] == 'URL'):
+                if currentUse in retrievalScope:  # e.g., TIFF or FULLTEXT
+                    for fLocat in fileNode.iter("{http://www.loc.gov/METS/}FLocat"):
+                        if fLocat.attrib["LOCTYPE"] == "URL":
                             if verbose:
-                                print("Processing "+id)
-                            href=fLocat.attrib['{http://www.w3.org/1999/xlink}href']
-                            rawPath=urlparse(href).path
-                            tokens=rawPath.split("/")
-                            outputPath=tokens[-1]
+                                print("Processing " + id)
+                            href = fLocat.attrib["{http://www.w3.org/1999/xlink}href"]
+                            rawPath = urlparse(href).path
+                            tokens = rawPath.split("/")
+                            outputPath = tokens[-1]
 
                             if verbose:
                                 print("\tSaving to: " + downloadDir + "/" + outputPath)
                             try:
                                 if not skipDownloads:
                                     if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
-                                        with open(downloadDir + "/" + outputPath, 'wb') as f:
+                                        with open(
+                                            downloadDir + "/" + outputPath, "wb"
+                                        ) as f:
                                             resp = requests.get(href, verify=False)
                                             f.write(resp.content)
                                     else:
-                                        urllib.request.urlretrieve(href, downloadDir+"/"+outputPath)
-                                if currentUse=='FULLTEXT':
-                                    altoPaths[id]=[downloadDir,outputPath]
+                                        urllib.request.urlretrieve(
+                                            href, downloadDir + "/" + outputPath
+                                        )
+                                if currentUse == "FULLTEXT":
+                                    altoPaths[id] = [downloadDir, outputPath]
                             except urllib.error.URLError:
-                                print("\tError processing "+href)
+                                print("\tError processing " + href)
 
     # extract illustrations found in ALTO files (only possible if the images have been downloaded before...)
-    #illuID = 0
+    # illuID = 0
     if extractIllustrations and (not skipDownloads):
         if "PPN" not in saveDir:
-            #saveDir = "./" + savePathPrefix + "/"+currentPPN+"/"
-            saveDir = "./" + savePathPrefix +"/"
+            # saveDir = "./" + savePathPrefix + "/"+currentPPN+"/"
+            saveDir = "./" + savePathPrefix + "/"
 
         # create a .tar file for the extracted illustrations
         tarBallPath = saveDir + currentPPN + ".tar"
-        
-        #print(saveDir)
+
+        # print(saveDir)
 
         tarBall = None
         tarBallEmpty = True
         if createTarBallOfExtractedIllustrations:
             tarBall = TAR.open(tarBallPath, "w")
-            #print("Creating tarball for extracted illustrations at: "+tarBallPath)
-        
-        foundImagesToExtract=False
+            # print("Creating tarball for extracted illustrations at: "+tarBallPath)
+
+        foundImagesToExtract = False
         for key in altoPaths:
-            foundImagesToExtract=False
-            tiffDir=altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+altoPaths[key][1].replace(".","_")+"/"
-            tiffDir=tiffDir#[1:-1]
+            foundImagesToExtract = False
+            tiffDir = (
+                altoPaths[key][0].replace("FULLTEXT", "TIFF")
+                + "/"
+                + altoPaths[key][1].replace(".", "_")
+                + "/"
+            )
+            tiffDir = tiffDir  # [1:-1]
             if not os.path.exists(tiffDir):
                 os.mkdir(tiffDir)
                 if verbose:
-                    print("Creating "+tiffDir)
+                    print("Creating " + tiffDir)
             if verbose:
-                print("Processing ALTO XML in: "+altoPaths[key][0]+"/"+altoPaths[key][1])
-            tree = ET.parse(altoPaths[key][0]+"/"+altoPaths[key][1])
+                print(
+                    "Processing ALTO XML in: "
+                    + altoPaths[key][0]
+                    + "/"
+                    + altoPaths[key][1]
+                )
+            tree = ET.parse(altoPaths[key][0] + "/" + altoPaths[key][1])
             root = tree.getroot()
 
-            for e in root.findall('.//{http://www.loc.gov/standards/alto/ns-v2#}PrintSpace'):
+            for e in root.findall(
+                ".//{http://www.loc.gov/standards/alto/ns-v2#}PrintSpace"
+            ):
                 for el in e:
                     if el.tag in consideredAltoElements:
-                        illuID=el.attrib['ID']
-                        #if verbose:
+                        illuID = el.attrib["ID"]
+                        # if verbose:
                         #    print("\tExtracting "+illuID)
-                        h=int(el.attrib['HEIGHT'])
-                        w=int(el.attrib['WIDTH'])
+                        h = int(el.attrib["HEIGHT"])
+                        w = int(el.attrib["WIDTH"])
                         if h > 150 and w > 150:
                             if verbose:
-                                print("Saving image to: "+saveDir + key.split("_")[1] + "_" +illuID + illustrationExportFileType)
-                            entry = {"WIDTH" : w, "HEIGHT": h, "LABEL" : key.split("_")[1]}
+                                print(
+                                    "Saving image to: "
+                                    + saveDir
+                                    + key.split("_")[1]
+                                    + "_"
+                                    + illuID
+                                    + illustrationExportFileType
+                                )
+                            entry = {
+                                "WIDTH": w,
+                                "HEIGHT": h,
+                                "LABEL": key.split("_")[1],
+                            }
                             dimensions.append(entry)
-                            hpos=int(el.attrib['HPOS'])
-                            vpos=int(el.attrib['VPOS'])
-                            #print(altoPaths[key])
-                            #print(altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+currentPPN+'.tif')
-                            img=Image.open(altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+currentPPN+'.tif')
+                            hpos = int(el.attrib["HPOS"])
+                            vpos = int(el.attrib["VPOS"])
+                            # print(altoPaths[key])
+                            # print(altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+currentPPN+'.tif')
+                            img = Image.open(
+                                altoPaths[key][0].replace("FULLTEXT", "TIFF")
+                                + "/"
+                                + currentPPN
+                                + ".tif"
+                            )
                             if verbose:
-                                print("\t\tImage size:",img.size)
+                                print("\t\tImage size:", img.size)
                                 print("\t\tCrop range:", h, w, vpos, hpos)
                             # (left, upper, right, lower)-tuple.
-                            img2 = img.crop((hpos, vpos, hpos+w, vpos+h))
+                            img2 = img.crop((hpos, vpos, hpos + w, vpos + h))
 
-                            extractName=key.split("_")[1] + "_" +illuID + illustrationExportFileType
-                            extractedIllustrationPath=saveDir + extractName
+                            extractName = (
+                                key.split("_")[1]
+                                + "_"
+                                + illuID
+                                + illustrationExportFileType
+                            )
+                            extractedIllustrationPath = saveDir + extractName
                             img2.save(extractedIllustrationPath)
-                            foundImagesToExtract=True
+                            foundImagesToExtract = True
 
                             if createTarBallOfExtractedIllustrations:
-                                tarBall.add(extractedIllustrationPath,recursive=False,arcname=extractName)
+                                tarBall.add(
+                                    extractedIllustrationPath,
+                                    recursive=False,
+                                    arcname=extractName,
+                                )
                                 tarBallEmpty = False
                                 os.remove(extractedIllustrationPath)
 
                         else:
                             if verbose:
                                 print("Image is too small: processing skipped.")
-                
+
         if createTarBallOfExtractedIllustrations:
             tarBall.close()
             if tarBallEmpty:
@@ -301,8 +403,8 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
                     print("No illustrations extracted, tarball removed.")
             else:
                 if verbose:
-                    print("Tarball created at: "+tarBallPath)
-        
+                    print("Tarball created at: " + tarBallPath)
+
         if not foundImagesToExtract:
             # TODO: remove empty folders if no illustrations have been extracted
             os.rmdir(saveDir)
@@ -321,55 +423,59 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
 
     return pathToTitlePage
 
+
 if __name__ == "__main__":
     # load configuration from 'config.yaml'
     # all parameters are documented in 'config.yaml'
-    with open('config.yaml', 'r') as file:
+    with open("config.yaml", "r") as file:
         cfg = yaml.safe_load(file)
 
-    addPPNPrefix=cfg['sbbget']['addPPNPrefix']
-    retrievalScope=cfg['sbbget']['retrievalScope']
-    extractIllustrations=cfg['sbbget']['extractIllustrations']
-    illustrationExportFileType= cfg['sbbget']['illustrationExportFileType']
-    createTarBallOfExtractedIllustrations=cfg['sbbget']['createTarBallOfExtractedIllustrations']
-    storeExtraTitlePageThumbnails=cfg['sbbget']['storeExtraTitlePageThumbnails']
-    titlePageThumbnailSize=cfg['sbbget']['titlePageThumbnailSize']
-    deleteTempFolders=cfg['sbbget']['deleteTempFolders']
-    deleteMasterTIFFs=cfg['sbbget']['deleteMasterTIFFs']
-    skipDownloads=cfg['sbbget']['skipDownloads']
-    forceTitlePageDownload = cfg['sbbget']['forceTitlePageDownload']
-    verbose=cfg['sbbget']['verbose']
-    consideredAltoElements=cfg['sbbget']['consideredAltoElements']
-    allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION=cfg['sbbget']['allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION']
-    runningFromWithinStabi=cfg['sbbget']['runningFromWithinStabi']
-    logFileName = cfg['sbbget']['logFileName']
-    errorLogFileName=cfg['sbbget']['errorLogFileName']
-    ppnListFile=cfg['sbbget']['ppnListFile']
-    maxDownloadLimit=cfg['sbbget']['maxDownloadLimit']
-    outputBaseDirectory=cfg['sbbget']['outputBaseDirectory']
+    addPPNPrefix = cfg["sbbget"]["addPPNPrefix"]
+    retrievalScope = cfg["sbbget"]["retrievalScope"]
+    extractIllustrations = cfg["sbbget"]["extractIllustrations"]
+    illustrationExportFileType = cfg["sbbget"]["illustrationExportFileType"]
+    createTarBallOfExtractedIllustrations = cfg["sbbget"][
+        "createTarBallOfExtractedIllustrations"
+    ]
+    storeExtraTitlePageThumbnails = cfg["sbbget"]["storeExtraTitlePageThumbnails"]
+    titlePageThumbnailSize = cfg["sbbget"]["titlePageThumbnailSize"]
+    deleteTempFolders = cfg["sbbget"]["deleteTempFolders"]
+    deleteMasterTIFFs = cfg["sbbget"]["deleteMasterTIFFs"]
+    skipDownloads = cfg["sbbget"]["skipDownloads"]
+    forceTitlePageDownload = cfg["sbbget"]["forceTitlePageDownload"]
+    verbose = cfg["sbbget"]["verbose"]
+    consideredAltoElements = cfg["sbbget"]["consideredAltoElements"]
+    allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION = cfg["sbbget"][
+        "allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION"
+    ]
+    runningFromWithinStabi = cfg["sbbget"]["runningFromWithinStabi"]
+    logFileName = cfg["sbbget"]["logFileName"]
+    errorLogFileName = cfg["sbbget"]["errorLogFileName"]
+    ppnListFile = cfg["sbbget"]["ppnListFile"]
+    maxDownloadLimit = cfg["sbbget"]["maxDownloadLimit"]
+    outputBaseDirectory = cfg["sbbget"]["outputBaseDirectory"]
     # end of configuration
-
 
     ppns = []
     dimensions = []
 
-
     if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
-        print("ATTENTION! SSL certificate verification is disabled. Do not use in production.")
+        print(
+            "ATTENTION! SSL certificate verification is disabled. Do not use in production."
+        )
 
     startTime = str(datetime.now())
 
-   
     # set a debug download limit for testing
-    debugLimit=maxDownloadLimit
-    i=0
+    debugLimit = maxDownloadLimit
+    i = 0
     with open(ppnListFile) as f:
         lines = f.readlines()
         for line in lines:
-           ppns.append(line.replace("\n", "").replace("PPN",""))
-           i+=1
-           if i>=debugLimit and maxDownloadLimit!=-1:
-               break
+            ppns.append(line.replace("\n", "").replace("PPN", ""))
+            i += 1
+            if i >= debugLimit and maxDownloadLimit != -1:
+                break
         f.close()
 
     # # a PPN list of Orbis pictus
@@ -380,105 +486,109 @@ if __name__ == "__main__":
     print("Number of documents to be processed: " + str(len(ppns)))
     start = 0
     end = len(ppns)
-    
+
     # in case of a prior abort of the script, try to resume from the last known state
-    if os.path.isfile(outputBaseDirectory+logFileName):
-        print("\nATTENTION! Log file found under %s. The script will try to continue processing. \nIf you want to restart, please remove the log file. \nThe script will continue in 15 seconds..."%logFileName)
+    if os.path.isfile(outputBaseDirectory + logFileName):
+        print(
+            "\nATTENTION! Log file found under %s. The script will try to continue processing. \nIf you want to restart, please remove the log file. \nThe script will continue in 15 seconds..."
+            % logFileName
+        )
         sleep(15)
-        with open(outputBaseDirectory+logFileName, 'r') as log_file:
+        with open(outputBaseDirectory + logFileName, "r") as log_file:
             log_entries = log_file.readlines()
             start = len(log_entries)
     else:
-        with open(outputBaseDirectory+logFileName, 'w') as log_file:
+        with open(outputBaseDirectory + logFileName, "w") as log_file:
             pass
 
     # demo stuff - please remove if you want to work on real data
-    #ppns=["3308099233"]#,"609921959"]
-    #end = len(ppns)
+    # ppns=["3308099233"]#,"609921959"]
+    # end = len(ppns)
     # end demo
 
-    summaryString=""
+    summaryString = ""
 
-    errorFile = open(outputBaseDirectory+errorLogFileName, "w")
+    errorFile = open(outputBaseDirectory + errorLogFileName, "w")
 
-    titlePagePaths=[]
-    # setup progress bar
-    # pbar = tqdm(total=end)
+    titlePagePaths = []
 
-    for i in trange(start,end):
+    for i in trange(start, end):
         # sbbPrefix will added before each created directory
-        sbbPrefix = outputBaseDirectory+"sbbget_downloads"
-        # automatically created subdirectories for downloads and extracted images 
-        downloadPathPrefix="download_temp"
-        savePathPrefix="extracted_images"
-        
+        sbbPrefix = outputBaseDirectory + "sbbget_downloads"
+        # automatically created subdirectories for downloads and extracted images
+        downloadPathPrefix = "download_temp"
+        savePathPrefix = "extracted_images"
+
         ppn = ppns[i]
         current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
-        with open(outputBaseDirectory+logFileName, 'a') as log_file:
+        with open(outputBaseDirectory + logFileName, "a") as log_file:
             log_file.write(current_time + " " + ppn + " (Number: %d)" % (i) + "\n")
 
         if addPPNPrefix:
             if not ppn.startswith("PPN"):
-                ppn="PPN"+ppn
+                ppn = "PPN" + ppn
 
-        if not os.path.exists(sbbPrefix+"/"):
+        if not os.path.exists(sbbPrefix + "/"):
             if verbose:
-                print("Creating "+sbbPrefix+"/")
-            os.mkdir(sbbPrefix+"/")
+                print("Creating " + sbbPrefix + "/")
+            os.mkdir(sbbPrefix + "/")
 
-        downloadPathPrefix= sbbPrefix + "/" + downloadPathPrefix
+        downloadPathPrefix = sbbPrefix + "/" + downloadPathPrefix
         savePathPrefix = sbbPrefix + "/" + savePathPrefix
 
         summaryString = "\nSUMMARY"
-        if not os.path.exists(downloadPathPrefix+"/"):
+        if not os.path.exists(downloadPathPrefix + "/"):
             if verbose:
-                print("Creating "+downloadPathPrefix+"/")
-            os.mkdir(downloadPathPrefix+"/")
-        downloadPathPrefix=downloadPathPrefix+"/"+ppn
+                print("Creating " + downloadPathPrefix + "/")
+            os.mkdir(downloadPathPrefix + "/")
+        downloadPathPrefix = downloadPathPrefix + "/" + ppn
 
-        summaryString += "\n\tDownloads (fulltexts, original digitizations etc.) were, e.g., stored at: "+downloadPathPrefix
-        if not os.path.exists(downloadPathPrefix+"/"):
+        summaryString += (
+            "\n\tDownloads (fulltexts, original digitizations etc.) were, e.g., stored at: "
+            + downloadPathPrefix
+        )
+        if not os.path.exists(downloadPathPrefix + "/"):
             if verbose:
-                print("Creating "+downloadPathPrefix+"/")
-            os.mkdir(downloadPathPrefix+"/")
+                print("Creating " + downloadPathPrefix + "/")
+            os.mkdir(downloadPathPrefix + "/")
 
-        if not os.path.exists(savePathPrefix+"/"):
+        if not os.path.exists(savePathPrefix + "/"):
             if verbose:
-                print("Creating "+savePathPrefix+"/")
-            os.mkdir(savePathPrefix+"/")
-        savePathPrefix=savePathPrefix+"/"+ppn
-        if not os.path.exists(savePathPrefix+"/"):
+                print("Creating " + savePathPrefix + "/")
+            os.mkdir(savePathPrefix + "/")
+        savePathPrefix = savePathPrefix + "/" + ppn
+        if not os.path.exists(savePathPrefix + "/"):
             if verbose:
-                print("Creating "+savePathPrefix+"/")
-            os.mkdir(savePathPrefix+"/")
+                print("Creating " + savePathPrefix + "/")
+            os.mkdir(savePathPrefix + "/")
         summaryString += "\n\tExtracted images were, e.g., stored at: " + savePathPrefix
 
-        metsModsDownloadPath=downloadPathPrefix + "/__metsmods/"
+        metsModsDownloadPath = downloadPathPrefix + "/__metsmods/"
         if not os.path.exists(metsModsDownloadPath):
             if verbose:
                 print("Creating " + metsModsDownloadPath)
             os.mkdir(metsModsDownloadPath)
-        summaryString += "\n\tMETS/MODS files were, e.g., stored at: " + metsModsDownloadPath
+        summaryString += (
+            "\n\tMETS/MODS files were, e.g., stored at: " + metsModsDownloadPath
+        )
 
-        #debug
-        #try:
-        pathToTitlePage=downloadData(ppn,downloadPathPrefix,metsModsDownloadPath)
-        # pbar.update(1)
+        # debug
+        # try:
+        pathToTitlePage = downloadData(ppn, downloadPathPrefix, metsModsDownloadPath)
 
         if pathToTitlePage:
             titlePagePaths.append(pathToTitlePage)
-        #except Exception as ex:
+        # except Exception as ex:
         #    template = "An exception of type {0} occurred. Arguments: {1!r}"
         #    message = template.format(type(ex).__name__, ex.args)
         #    errorFile.write(str(datetime.now()) + "\t" + ppn + "\t" + message + "\t" + downloadPathPrefix + "\t" + metsModsDownloadPath + "\n")
 
     errorFile.close()
-    #pbar.close()
-    
+
     # write out paths to title pages
     titlePagePathsFile = open("title_pages.txt", "w")
     for path in titlePagePaths:
-        titlePagePathsFile.write(path+"\n")
+        titlePagePathsFile.write(path + "\n")
     titlePagePathsFile.close()
 
     endTime = str(datetime.now())
@@ -486,10 +596,8 @@ if __name__ == "__main__":
 
     if deleteTempFolders:
         print("Deleting temporary folders. Only extracted images will be available.")
-        os.rmdir(sbbPrefix + "/" +"download_temp")
-        
+        os.rmdir(sbbPrefix + "/" + "download_temp")
 
-    
     # daz new
     print("\nStarted at:\t%s\nEnded at:\t%s" % (startTime, endTime))
     if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
