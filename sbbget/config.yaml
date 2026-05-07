@@ -12,6 +12,10 @@ sbbget:
     # enables verbose output during processing (this will render the progress bar invisible)
     verbose: False
 
+    # output base directory for downloaded files and extracted illustrations (the directory must exist, needed subdiretories will be created automatically)
+    # make sure that the paths ends with a slash (/)
+    outputBaseDirectory: "./"
+
     # in case the PPN list contains PPNs without "PPN" prefix, it will be added. if a PPN starts with PPN as prefix the prefix will not be added.
     addPPNPrefix: True
     

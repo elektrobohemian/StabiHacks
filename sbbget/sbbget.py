@@ -125,8 +125,8 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             for fileNode in child.iter('{http://www.loc.gov/METS/}file'):
             # embedding FLocat node pointing to the URLs of interest
                 id = fileNode.attrib['ID']
-                downloadDir="./"+downloadPathPrefix + "/" + id
-                saveDir= "./" + savePathPrefix + "/" + id
+                downloadDir=downloadPathPrefix + "/" + id
+                saveDir= savePathPrefix + "/" + id
                 # only create need sub directories
                 if currentUse in retrievalScope :
                     if not os.path.exists(downloadDir):
@@ -136,8 +136,8 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
 
                 if 'TIFF' in retrievalScope:
                     # try to download TIFF first
-                    downloadDir = "./" + downloadPathPrefix + "/" + id
-                    saveDir = "./" + savePathPrefix + "/"
+                    downloadDir =  downloadPathPrefix + "/" + id
+                    saveDir =  savePathPrefix + "/"
                     tiffDir=downloadDir.replace(currentUse,'TIFF')
 
                     if not os.path.exists(tiffDir):
@@ -245,7 +245,7 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
         for key in altoPaths:
             foundImagesToExtract=False
             tiffDir=altoPaths[key][0].replace('FULLTEXT','TIFF')+"/"+altoPaths[key][1].replace(".","_")+"/"
-            tiffDir="."+tiffDir[1:-1]
+            tiffDir=tiffDir#[1:-1]
             if not os.path.exists(tiffDir):
                 os.mkdir(tiffDir)
                 if verbose:
@@ -314,8 +314,8 @@ def downloadData(currentPPN,downloadPathPrefix,metsModsDownloadPath):
             os.remove(masterTiff)
 
     if deleteTempFolders:
-        shutil.rmtree('sbb/download_temp', ignore_errors=True)
-        if not os.path.exists("sbb/download_temp"):
+        shutil.rmtree(downloadPathPrefix, ignore_errors=True)
+        if not os.path.exists(downloadPathPrefix):
             if verbose:
                 print("Deleted temporary folders.")
 
@@ -346,6 +346,7 @@ if __name__ == "__main__":
     errorLogFileName=cfg['sbbget']['errorLogFileName']
     ppnListFile=cfg['sbbget']['ppnListFile']
     maxDownloadLimit=cfg['sbbget']['maxDownloadLimit']
+    outputBaseDirectory=cfg['sbbget']['outputBaseDirectory']
     # end of configuration
 
 
@@ -381,14 +382,14 @@ if __name__ == "__main__":
     end = len(ppns)
     
     # in case of a prior abort of the script, try to resume from the last known state
-    if os.path.isfile(logFileName):
+    if os.path.isfile(outputBaseDirectory+logFileName):
         print("\nATTENTION! Log file found under %s. The script will try to continue processing. \nIf you want to restart, please remove the log file. \nThe script will continue in 15 seconds..."%logFileName)
         sleep(15)
-        with open(logFileName, 'r') as log_file:
+        with open(outputBaseDirectory+logFileName, 'r') as log_file:
             log_entries = log_file.readlines()
             start = len(log_entries)
     else:
-        with open(logFileName, 'w') as log_file:
+        with open(outputBaseDirectory+logFileName, 'w') as log_file:
             pass
 
     # demo stuff - please remove if you want to work on real data
@@ -398,19 +399,22 @@ if __name__ == "__main__":
 
     summaryString=""
 
-    errorFile = open(errorLogFileName, "w")
+    errorFile = open(outputBaseDirectory+errorLogFileName, "w")
 
     titlePagePaths=[]
     # setup progress bar
     # pbar = tqdm(total=end)
 
     for i in trange(start,end):
-        sbbPrefix = "sbbget_downloads"
+        # sbbPrefix will added before each created directory
+        sbbPrefix = outputBaseDirectory+"sbbget_downloads"
+        # automatically created subdirectories for downloads and extracted images 
         downloadPathPrefix="download_temp"
         savePathPrefix="extracted_images"
+        
         ppn = ppns[i]
         current_time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
-        with open(logFileName, 'a') as log_file:
+        with open(outputBaseDirectory+logFileName, 'a') as log_file:
             log_file.write(current_time + " " + ppn + " (Number: %d)" % (i) + "\n")
 
         if addPPNPrefix:
@@ -478,10 +482,16 @@ if __name__ == "__main__":
     titlePagePathsFile.close()
 
     endTime = str(datetime.now())
-
     print(summaryString + "\n")
+
+    if deleteTempFolders:
+        print("Deleting temporary folders. Only extracted images will be available.")
+        os.rmdir(sbbPrefix + "/" +"download_temp")
+        
+
+    
     # daz new
-    print("Started at:\t%s\nEnded at:\t%s" % (startTime, endTime))
+    print("\nStarted at:\t%s\nEnded at:\t%s" % (startTime, endTime))
     if allowUnsafeSSLConnections_NEVER_USE_IN_PRODUCTION:
         print("Run without SSL certificate verification.")
 
