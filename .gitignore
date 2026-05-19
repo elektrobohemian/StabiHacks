@@ -113,6 +113,9 @@ analysis*/
 *.log
 *.DS_Store 
 
+#vscode
+.vscode/
+
 # jetbrains project files
 .idea/*
 sbbget/title_pages.txt
@@ -123,3 +126,4 @@ lowLevelFeatures/
 
 # addFirstPages.py specifics
 tpage_downloads*/
+
